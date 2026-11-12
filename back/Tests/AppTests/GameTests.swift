@@ -105,4 +105,81 @@ final class GameTests: XCTestCase {
             })
         }
     }
+
+    func testModifyGame() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let id = try XCTUnwrap(game.id)
+
+            try await app.test(
+                .PUT,
+                "games/\(id)",
+                beforeRequest: { req in
+                    try req.content.encode(
+                        ModifyGameDTO(
+                            title: "Dixit",
+                            minPlayers: 2,
+                            maxPlayers: 10,
+                            durationMinutes: 60
+                        )
+                    )
+                },
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let game = try res.content.decode(GameDTO.self)
+                    XCTAssertEqual(game.title, "Dixit")
+                    XCTAssertEqual(game.minPlayers, 2)
+                    XCTAssertEqual(game.maxPlayers, 10)
+                    XCTAssertEqual(game.durationMinutes, 60)
+                }
+            )
+        }
+    }
+
+    func testModifyGameUnknownGameReturnsNotFound () async throws {
+        try await withApp { app in
+            try await app.test(
+                .PUT,
+                "games/\(UUID())",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .notFound)
+                }
+            )
+        }
+    }
+
+    func testModifyGameWithMalformedIDReturnsBadRequest() async throws {
+        try await withApp { app in
+            try await app.test(
+                .PUT,
+                "games/not-a-uuid",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .badRequest)
+                }
+            )
+        }
+    }
+
+    func testModifyGameWithMalformedBodyReturnsBadRequest() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let id = try XCTUnwrap(game.id)
+            try await app.test(
+                .PUT,
+                "games/\(id)",
+                beforeRequest: {req in
+                    try req.content.encode(
+                        ModifyGameDTO(
+                            title: "",
+                            minPlayers: 2,
+                            maxPlayers: 10,
+                            durationMinutes: 60)
+                    )
+                },
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .badRequest)
+                }
+            )
+        }
+    }
 }
