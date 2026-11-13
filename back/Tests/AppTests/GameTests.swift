@@ -182,4 +182,56 @@ final class GameTests: XCTestCase {
             )
         }
     }
+
+    func testDeleteGame() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let id = try XCTUnwrap(game.id)
+
+            try await app.test(
+                .DELETE,
+                "games/\(id)",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .noContent)
+                }
+            )
+        }
+    }
+
+    func testDeleteUnknowGameReturnsNotFound() async throws {
+        try await withApp { app in
+            try await app.test(
+                .DELETE,
+                "games/\(UUID())",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .notFound)
+                }
+            )
+        }
+    }
+
+    func testDeleteLoanedGameReturnsConflict() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let gameID = try XCTUnwrap(game.id)
+            let member = try await createMember(app)
+            let memberID = try XCTUnwrap(member.id)
+            try await insertLoan(
+                app,
+                gameID: gameID,
+                memberID: memberID,
+                borrowedAt: Date(),
+                dueAt: try Loan.dueDate(from: Date())
+            )
+
+
+            try await app.test(
+                .DELETE,
+                "games/\(gameID)",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .conflict)
+                }
+            )
+        }
+    }
 }
