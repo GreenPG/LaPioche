@@ -107,6 +107,9 @@ function gameCard(game) {
     actions.append(button("Emprunter", () => openBorrowDialog(game), "primary"));
   }
   actions.append(button("Modifier", () => openModifyDialog(game), "primary"));
+  actions.append(
+    button("Supprimer", () => openDeleteConfirmationDialog(game), "danger"),
+  );
 
   return el(
     "li",
@@ -127,11 +130,22 @@ function openModifyDialog(game) {
   showFormError(modifyGameDialog, null);
   modifyGameDialog.showModal();
 }
+
+function openDeleteConfirmationDialog(game) {
+  gameToDelete = game;
+  deleteGameDialog.querySelector("h2").textContent =
+    `Êtes-vous sûr de vouloir supprimer ${game.title} ?`;
+  deleteGameDialog.showModal();
+}
+
 const gameDialog = $("#game-dialog");
 const gameForm = $("#game-form");
 const modifyGameDialog = $("#modify-game-dialog");
 const modifyGameForm = $("#modify-game-form");
 let modifiedGame = null;
+const deleteGameDialog = $("#delete-game-dialog");
+const deleteGameForm = $("#delete-game-form");
+let gameToDelete = null;
 
 $("#add-game").addEventListener("click", () => {
   gameForm.reset();
@@ -156,6 +170,11 @@ bindSubmit(modifyGameDialog, modifyGameForm, (data) =>
     durationMinutes: Number(data.get("durationMinutes")),
   }),
 );
+
+bindSubmit(deleteGameDialog, deleteGameForm, () =>
+  api.deleteGame(gameToDelete.id),
+);
+
 // --- Emprunts --------------------------------------------------------------
 
 const borrowDialog = $("#borrow-dialog");

@@ -65,6 +65,87 @@ test("a validation error is shown in French and the dialog stays open", async ()
   assertTrue(app.$("#game-dialog").open, "la boîte devrait rester ouverte");
 });
 
+test("deleting a game", async () => {
+  let games = [catan];
+  const app = await mountApp({
+    "GET /games": () => games,
+    "DELETE /games/g1": () => {
+      games = [];
+      return [204];
+    },
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  app.click("Supprimer", cardOf(app, "Catan"));
+  await waitFor(
+    () => app.$("#delete-game-dialog").open,
+    "la boîte de suppression",
+  );
+  app.$("#delete-game-form").requestSubmit();
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "DELETE" && call.path === "/games/g1",
+      ),
+    "l'appel DELETE /games",
+  );
+  await waitFor(
+    () => !app.$("#delete-game-dialog").open,
+    "la fermeture de la boîte",
+  );
+  await waitFor(
+    () => app.$$("#games-list .card").length === 0,
+    // "la suppression de la carte",
+    `carte toujours présente. Appels : ${JSON.stringify(app.calls)}`,
+  );
+});
+
+test("deleting game with loans explains that it cannot be deleted", async () => {
+  let games = [catan];
+  const app = await mountApp({
+    "GET /games": () => games,
+    "GET /members": [camille],
+    "POST /loans": [
+      201,
+      {
+        id: "l1",
+        gameID: "g1",
+        memberID: "m1",
+        borrowedAt: new Date().toISOString(),
+        dueAt: new Date().toISOString(),
+      },
+    ],
+    "DELETE /games/g1": () => {
+      games = [catan];
+      return [
+        409,
+        { error: true, reason: "A game with loans cannot be deleted" },
+      ];
+    },
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  app.click("Supprimer", cardOf(app, "Catan"));
+  await waitFor(
+    () => app.$("#delete-game-dialog").open,
+    "la boîte de suppression",
+  );
+  app.$("#delete-game-form").requestSubmit();
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "DELETE" && call.path === "/games/g1",
+      ),
+    "l'appel DELETE /games",
+  );
+  await waitFor(
+    () => !app.$("#delete-game-dialog .form-error").hidden,
+    "le message d'erreur",
+  );
+  assertIncludes(
+    app.$("#delete-game-dialog .form-error").textContent,
+    "ce jeu a un historique d'emprunts",
+  );
+});
+
 // --- Emprunts
 
 test("borrowing a game sends the game and the chosen member", async () => {
