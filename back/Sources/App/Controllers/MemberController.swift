@@ -41,4 +41,19 @@ struct MemberController: RouteCollection {
         }
         return member.toDTO()
     }
+
+    func findMember(_ req: Request) async throws -> Member {
+        guard let memberID = req.parameters.get("memberID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid member id")
+        }
+
+        guard let member = try await Member.query(on: req.db)
+            .filter(\.$id == memberID)
+            .with(\.$loans)
+            .first()
+                else {
+            throw Abort(.notFound, reason: "Member not found")
+        }
+        return member
+    }
 }
