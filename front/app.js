@@ -212,15 +212,37 @@ async function loadMembers() {
 }
 
 function memberRow(member) {
+  const actions = el("div", { class: "actions" });
+  actions.append(
+    button("Modifier", () => openUpdateMemberDialog(member), "primary"),
+  );
   return el(
     "li",
     { class: "row" },
-    el("div", { class: "row-main" }, el("p", {}, el("strong", {}, member.name)), el("p", { class: "meta" }, member.email)),
+    el(
+      "div",
+      { class: "row-main" },
+      el("p", {}, el("strong", {}, member.name)),
+      el("p", { class: "meta" }, member.email),
+    ),
+    actions,
   );
 }
 
 const memberDialog = $("#member-dialog");
 const memberForm = $("#member-form");
+const memberUpdateDialog = $("#update-member-dialog");
+const memberUpdateForm = $("#update-member-form");
+let updatedMember = null;
+
+function openUpdateMemberDialog(member) {
+  updatedMember = member;
+  memberUpdateForm.name.value = member.name;
+  memberUpdateForm.email.value = member.email;
+
+  showFormError(memberUpdateDialog, null);
+  memberUpdateDialog.showModal();
+}
 
 $("#add-member").addEventListener("click", () => {
   memberForm.reset();
@@ -230,6 +252,13 @@ $("#add-member").addEventListener("click", () => {
 
 bindSubmit(memberDialog, memberForm, (data) =>
   api.createMember({ name: data.get("name").trim(), email: data.get("email").trim() }),
+
+bindSubmit(memberUpdateDialog, memberUpdateForm, (data) =>
+  api.updateMember(updatedMember.id, {
+    name: data.get("name").trim(),
+    email: data.get("email").trim(),
+  }),
+);
 );
 
 refresh();

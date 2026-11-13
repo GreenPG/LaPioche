@@ -206,6 +206,77 @@ test("an email already in use is shown in French", async () => {
   await waitFor(() => !app.$("#members-empty").hidden);
   app.click("Ajouter un·e adhérent·e");
   app.$("#member-form").requestSubmit();
-  await waitFor(() => !app.$("#member-dialog .form-error").hidden, "le message d'erreur");
-  assertIncludes(app.$("#member-dialog .form-error").textContent, "utilise déjà cette adresse e-mail");
+  await waitFor(
+    () => !app.$("#member-dialog .form-error").hidden,
+    "le message d'erreur",
+  );
+  assertIncludes(
+    app.$("#member-dialog .form-error").textContent,
+    "utilise déjà cette adresse e-mail",
+  );
+});
+
+test("modify a member", async () => {
+  const app = await mountApp(
+    {
+      "GET /members": [camille],
+      "PUT /members/m1": [
+        200,
+        { name: "Charles", email: "charles@example.com" },
+      ],
+    },
+    { hash: "#members" },
+  );
+  await waitFor(() => app.$$("#members-list .row").length === 1);
+  app.click("Modifier", cardOf(app, "Camille"));
+  await waitFor(
+    () => app.$("#update-member-dialog").open,
+    "la boîte de modification de membre",
+  );
+  const form = app.$("#update-member-form");
+  form.elements.name.value = " Charles";
+  form.elements.email.value = "charles@example.com";
+  form.requestSubmit();
+  await waitFor(() =>
+    app.calls.some(
+      (call) => call.method === "PUT" && call.path === "/members/m1",
+      "l'appel PUT /members",
+    ),
+  );
+  assertEqual(app.calls.find((call) => call.method === "PUT").body, {
+    name: "Charles",
+    email: "charles@example.com",
+  });
+  await waitFor(
+    () => !app.$("#update-member-dialog").open,
+    "la fermeture de la boîte",
+  );
+});
+
+test("update a member and an email already in use is shown in French", async () => {
+  const app = await mountApp(
+    {
+      "GET /members": [camille],
+      "PUT /members/m1": [
+        409,
+        { error: true, reason: "A member with this email already exists" },
+      ],
+    },
+    { hash: "#members" },
+  );
+  await waitFor(() => app.$$("#members-list .row").length === 1);
+  app.click("Modifier", cardOf(app, "Camille"));
+  await waitFor(
+    () => app.$("#update-member-dialog").open,
+    "la boîte de modification de membre",
+  );
+  app.$("#update-member-form").requestSubmit();
+  await waitFor(
+    () => !app.$("#update-member-dialog .form-error").hidden,
+    "le message d'erreur",
+  );
+  assertIncludes(
+    app.$("#update-member-dialog .form-error").textContent,
+    "utilise déjà cette adresse e-mail",
+  );
 });
