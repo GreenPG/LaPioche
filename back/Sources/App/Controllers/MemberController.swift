@@ -7,6 +7,7 @@ struct MemberController: RouteCollection {
         members.get(use: index)
         members.post(use: create)
         members.get(":memberID", use: show)
+        members.put(":memberID", use: update)
     }
 
     @Sendable
@@ -56,4 +57,25 @@ struct MemberController: RouteCollection {
         }
         return member
     }
+    func update(req: Request) async throws -> MemberDTO {
+        let member = try await findMember(req)
+        let updatedMember = try req.content.decode(ModifyMemberDTO.self)
+
+        if let emailUser = try await Member
+            .query(on: req.db)
+            .filter(\.$email == updatedMember.email)
+            .first() {
+            if emailUser.id != member.id {
+                throw Abort(.conflict, reason: "A member with this email already exists")
+            }
+        }
+
+
+        member.name = updatedMember.name
+        member.email = updatedMember.email
+        try await member.update(on: req.db)
+
+        return member.toDTO()
+    }
+
 }
