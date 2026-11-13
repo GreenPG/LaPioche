@@ -216,6 +216,9 @@ function memberRow(member) {
   actions.append(
     button("Modifier", () => openUpdateMemberDialog(member), "primary"),
   );
+  actions.append(
+    button("Supprimer", () => openDeleteMemberDialog(member), "danger"),
+  );
   return el(
     "li",
     { class: "row" },
@@ -233,7 +236,10 @@ const memberDialog = $("#member-dialog");
 const memberForm = $("#member-form");
 const memberUpdateDialog = $("#update-member-dialog");
 const memberUpdateForm = $("#update-member-form");
+const memberDeleteDialog = $("#delete-member-dialog");
+const memberDeleteForm = $("#delete-member-form");
 let updatedMember = null;
+let memberToDelete = null;
 
 function openUpdateMemberDialog(member) {
   updatedMember = member;
@@ -242,6 +248,12 @@ function openUpdateMemberDialog(member) {
 
   showFormError(memberUpdateDialog, null);
   memberUpdateDialog.showModal();
+}
+
+function openDeleteMemberDialog(member) {
+  memberToDelete = member;
+  showFormError(memberDeleteDialog, null);
+  memberDeleteDialog.showModal();
 }
 
 $("#add-member").addEventListener("click", () => {
@@ -259,6 +271,9 @@ bindSubmit(memberUpdateDialog, memberUpdateForm, (data) =>
     email: data.get("email").trim(),
   }),
 );
+
+bindSubmit(memberDeleteDialog, memberDeleteForm, () =>
+  api.deleteMember(memberToDelete.id),
 );
 
 refresh();
