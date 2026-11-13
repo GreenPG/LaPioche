@@ -106,6 +106,7 @@ function gameCard(game) {
   if (game.isAvailable) {
     actions.append(button("Emprunter", () => openBorrowDialog(game), "primary"));
   }
+  actions.append(button("Modifier", () => openModifyDialog(game), "primary"));
 
   return el(
     "li",
@@ -116,8 +117,21 @@ function gameCard(game) {
   );
 }
 
+function openModifyDialog(game) {
+  modifiedGame = game;
+  modifyGameForm.title.value = game.title;
+  modifyGameForm.minPlayers.value = game.minPlayers;
+  modifyGameForm.maxPlayers.value = game.maxPlayers;
+  modifyGameForm.durationMinutes.value = game.durationMinutes;
+
+  showFormError(modifyGameDialog, null);
+  modifyGameDialog.showModal();
+}
 const gameDialog = $("#game-dialog");
 const gameForm = $("#game-form");
+const modifyGameDialog = $("#modify-game-dialog");
+const modifyGameForm = $("#modify-game-form");
+let modifiedGame = null;
 
 $("#add-game").addEventListener("click", () => {
   gameForm.reset();
@@ -134,6 +148,14 @@ bindSubmit(gameDialog, gameForm, (data) =>
   }),
 );
 
+bindSubmit(modifyGameDialog, modifyGameForm, (data) =>
+  api.modifyGame(modifiedGame.id, {
+    title: data.get("title").trim(),
+    minPlayers: Number(data.get("minPlayers")),
+    maxPlayers: Number(data.get("maxPlayers")),
+    durationMinutes: Number(data.get("durationMinutes")),
+  }),
+);
 // --- Emprunts --------------------------------------------------------------
 
 const borrowDialog = $("#borrow-dialog");
