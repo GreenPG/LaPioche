@@ -11,11 +11,19 @@ struct LoanController: RouteCollection {
     func create(req: Request) async throws -> Response {
         let dto = try req.content.decode(CreateLoanDTO.self)
 
-        guard let game = try await Game.find(dto.gameID, on: req.db) else {
+        guard let game = try await Game
+            .query(on: req.db)
+            .filter(\.$id == dto.gameID)
+            .with(\.$loans)
+            .first() else {
             throw Abort(.notFound, reason: "Game not found")
         }
         guard let member = try await Member.find(dto.memberID, on: req.db) else {
             throw Abort(.notFound, reason: "Member not found")
+        }
+
+        guard game.loans.allSatisfy({ $0.returnedAt != nil }) else {
+            throw Abort(.conflict, reason: "Game is already on loan")
         }
 
         let now = Date()
