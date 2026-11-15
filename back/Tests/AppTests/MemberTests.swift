@@ -174,4 +174,78 @@ final class MemberTests: XCTestCase {
             )
         }
     }
+
+    func testListMemberLoans() async throws {
+        try await withApp { app in
+            let member = try await createMember(app)
+            let memberID = try XCTUnwrap(member.id)
+            let game1 = try await createGame(app)
+            let game2 = try await createGame(app, title: "Dixit")
+            try await insertLoan(
+                app,
+                gameID: XCTUnwrap(game1.id),
+                memberID: memberID,
+                borrowedAt: Date(),
+                dueAt: Date()
+            )
+            try await insertLoan(
+                app,
+                gameID: XCTUnwrap(game2.id),
+                memberID: memberID,
+                borrowedAt: Date(),
+                dueAt: Date()
+            )
+
+            try await app.test(
+                .GET,
+                "members/\(memberID)/loans",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let loans = try res.content.decode([LoanDTO].self)
+                    XCTAssertEqual(loans.count, 2)
+                }
+            )
+        }
+    }
+
+    func testListMemberLoansEmpty() async throws {
+        try await withApp { app in
+            let member = try await createMember(app)
+            let memberID = try XCTUnwrap(member.id)
+
+            try await app.test(
+                .GET,
+                "members/\(memberID)/loans",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let loans = try res.content.decode([LoanDTO].self)
+                    XCTAssertEqual(loans.isEmpty, true)
+                }
+            )
+        }
+    }
+
+    func testListMemberLoansWithMalformedIDReturnsBadRequest() async throws {
+        try await withApp { app in
+            try await app.test(
+                .GET,
+                "members/not_an_id/loans",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .badRequest)
+                }
+            )
+        }
+    }
+
+    func testListMemberLoansUnknownMemberReturnsNotFound() async throws {
+        try await withApp { app in
+            try await app.test(
+                .GET,
+                "members/\(UUID())/return",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .notFound)
+                }
+            )
+        }
+    }
 }
