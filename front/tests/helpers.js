@@ -25,7 +25,9 @@ export function fakeApi(routes) {
     const call = { method, path: url.pathname, search: url.search, body };
     calls.push(call);
 
-    let handler = routes[`${method} ${url.pathname}${url.search}`] ?? routes[`${method} ${url.pathname}`];
+    let handler =
+      routes[`${method} ${url.pathname}${url.search}`] ??
+      routes[`${method} ${url.pathname}`];
     if (handler === undefined) {
       return jsonResponse(404, { error: true, reason: "Not found" });
     }
@@ -79,7 +81,10 @@ export async function mountApp(routes, { hash = "" } = {}) {
   const win = frame.contentWindow;
   const $ = (selector) => doc.querySelector(selector);
   const $$ = (selector) => [...doc.querySelectorAll(selector)];
-  await waitFor(() => doc.readyState === "complete", "la page ne se charge pas");
+  await waitFor(
+    () => doc.readyState === "complete",
+    "la page ne se charge pas",
+  );
 
   return {
     win,
@@ -89,7 +94,9 @@ export async function mountApp(routes, { hash = "" } = {}) {
     calls: api.calls,
     // Clique sur le premier bouton dont le texte est exactement `label`, dans `root`.
     click(label, root = doc) {
-      const target = [...root.querySelectorAll("button")].find((button) => button.textContent.trim() === label);
+      const target = [...root.querySelectorAll("button")].find(
+        (button) => button.textContent.trim() === label,
+      );
       if (!target) throw new Error(`bouton « ${label} » introuvable`);
       target.click();
     },
