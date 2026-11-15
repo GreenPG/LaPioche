@@ -216,7 +216,7 @@ final class GameTests: XCTestCase {
             let gameID = try XCTUnwrap(game.id)
             let member = try await createMember(app)
             let memberID = try XCTUnwrap(member.id)
-            try await insertLoan(
+            let _ = try await insertLoan(
                 app,
                 gameID: gameID,
                 memberID: memberID,

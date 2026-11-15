@@ -56,8 +56,10 @@ func insertLoan(
     borrowedAt: Date,
     dueAt: Date,
     returnedAt: Date? = nil
-) async throws {
+) async throws -> Loan {
     let loan = Loan(gameID: gameID, memberID: memberID, borrowedAt: borrowedAt, dueAt: dueAt)
     loan.returnedAt = returnedAt
     try await loan.save(on: app.db)
+    return loan
 }
+

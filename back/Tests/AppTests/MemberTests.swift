@@ -163,8 +163,7 @@ final class MemberTests: XCTestCase {
             let member = try await createMember(app)
             let game = try await createGame(app)
             let id = try XCTUnwrap(member.id)
-            try await insertLoan(app, gameID: XCTUnwrap(game.id), memberID: id, borrowedAt: Date(), dueAt: Date())
-
+            let _ = try await insertLoan(app, gameID: XCTUnwrap(game.id), memberID: id, borrowedAt: Date(), dueAt: Date())
             try await app.test(
                 .DELETE,
                 "members/\(id)",
