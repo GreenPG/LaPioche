@@ -47,7 +47,14 @@ const dixitLoan = {
   memberID: "m1",
   borrowedAt: new Date(),
   dueAt: new Date().setDate(new Date().getDate() + 14),
-  returnedAt: null,
+};
+const returnedDixitLoan = {
+  id: "l2",
+  gameID: "g2",
+  memberID: "m1",
+  borrowedAt: new Date(),
+  dueAt: new Date().setDate(new Date().getDate() + 14),
+  returnedAt: new Date(),
 };
 const sevenWondersLoan = {
   id: "l3",
@@ -55,7 +62,6 @@ const sevenWondersLoan = {
   memberID: "m1",
   borrowedAt: new Date().setDate(new Date().getDate() - 7),
   dueAt: new Date().setDate(new Date().getDate() - 1),
-  returnedAt: null,
 };
 
 const cardOf = (app, title) =>
@@ -287,6 +293,53 @@ test("borrowing without any member explains that one must be added first", async
   );
 });
 
+test("return a game return the updated loan", async () => {
+  const app = await mountApp({
+    "GET /games": [dixit],
+    "GET /members": [camille],
+    "GET /members/m1/loans": [dixitLoan],
+    "POST /loans/l2/return": [returnedDixitLoan],
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  app.click("Rendre", cardOf(app, "Dixit"));
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "POST" && call.path === "/loans/l2/return",
+      ),
+    "l'appel POST /loans/l2/return",
+  );
+  await waitFor(
+    () => app.$("#toasts").textContent.includes("Le jeu a bien été rendu"),
+    "le message de confirmation",
+  );
+});
+
+test("return a game already returned display error message", async () => {
+  const app = await mountApp({
+    "GET /games": [dixit],
+    "GET /members": [camille],
+    "GET /members/m1/loans": [dixitLoan],
+    "POST /loans/l2/return": [
+      409,
+      { error: true, reason: "Loan is already returned" },
+    ],
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  app.click("Rendre", cardOf(app, "Dixit"));
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "POST" && call.path === "/loans/l2/return",
+      ),
+    "l'appel POST /loans/l2/return",
+  );
+  await waitFor(
+    () => app.$("#toasts").textContent.includes("déjà été rendu"),
+    "le message d'erreur",
+  );
+});
+
 // --- Adhérent·es
 
 test("members tab lists the members", async () => {
@@ -435,11 +488,6 @@ test("list member loans with all status", async () => {
     },
     { hash: "#members" },
   );
-  // assertEqual(app.calls.find((call) => call.method === "GET").body, {
-  //   id: "m1",
-  //   name: "Camille",
-  //   email: "camille@example.com",
-  // });
   await waitFor(() => app.$$("#members-list .row").length === 1);
   app.click("Emprunts", cardOf(app, "Camille"));
   await waitFor(
@@ -472,25 +520,31 @@ test("list member loans with all status", async () => {
     app.$("#member-loans-list").children[0].children[0].children[0].textContent,
     "Catan",
   );
-  assertEqual(
-    app.$("#member-loans-list").children[0].children[0].children[3].textContent,
-    "Rendu",
+  assertTrue(
+    app
+      .$("#member-loans-list")
+      .children[0].children[0].children[3].textContent.includes("Rendu"),
+    "le status de l'emprunt est 'Rendu'",
   );
   assertEqual(
     app.$("#member-loans-list").children[1].children[0].children[0].textContent,
     "Dixit",
   );
-  assertEqual(
-    app.$("#member-loans-list").children[1].children[0].children[3].textContent,
-    "En cours",
+  assertTrue(
+    app
+      .$("#member-loans-list")
+      .children[1].children[0].children[3].textContent.includes("En cours"),
+    "le status de l'emprunt est 'En cours'",
   );
   assertEqual(
     app.$("#member-loans-list").children[2].children[0].children[0].textContent,
     "Seven Wonders",
   );
-  assertEqual(
-    app.$("#member-loans-list").children[2].children[0].children[3].textContent,
-    "En retard",
+  assertTrue(
+    app
+      .$("#member-loans-list")
+      .children[2].children[0].children[3].textContent.includes("En retard"),
+    "le status de l'emprunt est 'En retard'",
   );
 });
 

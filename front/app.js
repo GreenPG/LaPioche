@@ -223,14 +223,24 @@ bindSubmit(borrowDialog, borrowForm, async (data) => {
 
 async function returnLoan(game) {
   const loanID = await findLoanID(game.id);
-  await api.returnLoan(loan.id);
-  toast(`Jeu a bien été rendu`);
+  try {
+    let loan = await api.returnLoan(loanID);
+    toast(`Le jeu a bien été rendu`);
+    refresh();
+  } catch (error) {
+    toast(error.message, true);
+  }
 }
 
 async function findLoanID(gameID) {
   let members = await api.listMembers();
-  for (member in members) {
-    const memberLoans = await member;
+  for (const member of members) {
+    const memberLoans = await api.listMemberLoans(member.id);
+    for (const loan of memberLoans) {
+      if (loan.gameID === gameID && !("returnedAt" in loan)) {
+        return loan.id;
+      }
+    }
   }
 }
 
