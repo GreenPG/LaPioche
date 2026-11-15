@@ -113,6 +113,8 @@ function gameCard(game) {
     actions.append(
       button("Emprunter", () => openBorrowDialog(game), "primary"),
     );
+  } else {
+    actions.append(button("Rendre", () => returnLoan(game), "primary"));
   }
   actions.append(button("Modifier", () => openModifyDialog(game), "primary"));
   actions.append(
@@ -219,6 +221,19 @@ bindSubmit(borrowDialog, borrowForm, async (data) => {
   );
 });
 
+async function returnLoan(game) {
+  const loanID = await findLoanID(game.id);
+  await api.returnLoan(loan.id);
+  toast(`Jeu a bien été rendu`);
+}
+
+async function findLoanID(gameID) {
+  let members = await api.listMembers();
+  for (member in members) {
+    const memberLoans = await member;
+  }
+}
+
 // --- Adhérent·es -----------------------------------------------------------
 
 async function loadMembers() {
@@ -227,8 +242,26 @@ async function loadMembers() {
   $("#members-list").replaceChildren(...members.map(memberRow));
 }
 
+async function loadMemberLoans(member) {
+  const loans = await api.listMemberLoans(member.id);
+  if (loans.length > 0) {
+    $("#member-loans-empty").hidden = true;
+    $("#member-loans-list").replaceChildren(
+      ...(await Promise.all(loans.map(memberLoansRow))),
+    );
+  } else {
+    $("#member-loans-list").textContent = "";
+    $("#member-loans-empty").hidden = false;
+    $("#member-loans-empty").textContent =
+      `${member.name} n'as pas encore emprunté de jeu`;
+  }
+}
+
 function memberRow(member) {
   const actions = el("div", { class: "actions" });
+  actions.append(
+    button("Emprunts", () => openMemberLoansDialog(member), "primary"),
+  );
   actions.append(
     button("Modifier", () => openUpdateMemberDialog(member), "primary"),
   );
@@ -248,12 +281,53 @@ function memberRow(member) {
   );
 }
 
+async function memberLoansRow(loan) {
+  const game = await api.getGame(loan.gameID);
+  let status;
+  if (loan.returnedAt) {
+    status = "Rendu";
+  } else if (
+    new Date().setHours(0, 0, 0, 0) > new Date(loan.dueAt).setHours(0, 0, 0, 0)
+  ) {
+    status = "En retard";
+  } else {
+    status = "En cours";
+  }
+  const dateFormatOptions = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
+  return el(
+    "li",
+    { class: "row" },
+    el(
+      "div",
+      { class: "row-main" },
+      el("p", {}, el("strong", {}, game.title)),
+      el(
+        "p",
+        { class: "meta" },
+        `Emprunté le: ${new Date(loan.borrowedAt).toLocaleString("fr-FR", dateFormatOptions)}`,
+      ),
+      el(
+        "p",
+        { class: "meta" },
+        `A rendre le: ${new Date(loan.dueAt).toLocaleString("fr-FR", dateFormatOptions)}`,
+      ),
+      el("p", { class: "meta" }, `Status: ${status}`),
+    ),
+  );
+}
+
 const memberDialog = $("#member-dialog");
 const memberForm = $("#member-form");
 const memberUpdateDialog = $("#update-member-dialog");
 const memberUpdateForm = $("#update-member-form");
 const memberDeleteDialog = $("#delete-member-dialog");
 const memberDeleteForm = $("#delete-member-form");
+const memberLoansDialog = $("#member-loans-dialog");
 let updatedMember = null;
 let memberToDelete = null;
 
@@ -270,6 +344,11 @@ function openDeleteMemberDialog(member) {
   memberToDelete = member;
   showFormError(memberDeleteDialog, null);
   memberDeleteDialog.showModal();
+}
+
+async function openMemberLoansDialog(member) {
+  await loadMemberLoans(member);
+  memberLoansDialog.showModal();
 }
 
 $("#add-member").addEventListener("click", () => {

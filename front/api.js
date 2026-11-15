@@ -121,8 +121,10 @@ export const api = {
   createGame: (game) => request("POST", "/games", game),
   modifyGame: (id, game) => request("PUT", `/games/${id}`, game),
   deleteGame: (id) => request("DELETE", `/games/${id}`),
+  getGame: (id) => request("GET", `/games/${id}`),
 
   listMembers: () => request("GET", "/members"),
+  listMemberLoans: (id) => request("GET", `/members/${id}/loans`),
   createMember: (member) => request("POST", "/members", member),
   updateMember: (id, member) => request("PUT", `/members/${id}`, member),
   deleteMember: (id) => request("DELETE", `/members/${id}`),

@@ -23,7 +23,40 @@ const dixit = {
   durationMinutes: 30,
   isAvailable: false,
 };
+const sevenWonders = {
+  id: "g3",
+  title: "Seven Wonders",
+  minPlayers: 2,
+  maxPlayers: 8,
+  durationMinutes: 90,
+  isAvailable: false,
+};
 const camille = { id: "m1", name: "Camille", email: "camille@example.com" };
+
+const catanLoan = {
+  id: "l1",
+  gameID: "g1",
+  memberID: "m1",
+  borrowedAt: new Date(),
+  dueAt: new Date().setDate(new Date().getDate() + 14),
+  returnedAt: new Date().setDate(new Date().getDate() + 7),
+};
+const dixitLoan = {
+  id: "l2",
+  gameID: "g2",
+  memberID: "m1",
+  borrowedAt: new Date(),
+  dueAt: new Date().setDate(new Date().getDate() + 14),
+  returnedAt: null,
+};
+const sevenWondersLoan = {
+  id: "l3",
+  gameID: "g3",
+  memberID: "m1",
+  borrowedAt: new Date().setDate(new Date().getDate() - 7),
+  dueAt: new Date().setDate(new Date().getDate() - 1),
+  returnedAt: null,
+};
 
 const cardOf = (app, title) =>
   app
@@ -388,5 +421,95 @@ test("update a member and an email already in use is shown in French", async () 
   assertIncludes(
     app.$("#update-member-dialog .form-error").textContent,
     "utilise déjà cette adresse e-mail",
+  );
+});
+
+test("list member loans with all status", async () => {
+  const app = await mountApp(
+    {
+      "GET /members": [camille],
+      "GET /members/m1/loans": [catanLoan, dixitLoan, sevenWondersLoan],
+      "GET /games/g1": catan,
+      "GET /games/g2": dixit,
+      "GET /games/g3": sevenWonders,
+    },
+    { hash: "#members" },
+  );
+  // assertEqual(app.calls.find((call) => call.method === "GET").body, {
+  //   id: "m1",
+  //   name: "Camille",
+  //   email: "camille@example.com",
+  // });
+  await waitFor(() => app.$$("#members-list .row").length === 1);
+  app.click("Emprunts", cardOf(app, "Camille"));
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "GET" && call.path === "/games/g1",
+      ),
+    "1er appel GET /members/g1",
+  );
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "GET" && call.path === "/games/g2",
+      ),
+    "2e appel GET /members/g2",
+  );
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) => call.method === "GET" && call.path === "/games/g3",
+      ),
+    "3e appel GET /members/g3",
+  );
+  await waitFor(
+    () => app.$("#member-loans-dialog").open,
+    "la boîte de liste d'emprunts",
+  );
+  // await waitFor(() => app.$("#member-loans-list").length === 3);
+  assertEqual(
+    app.$("#member-loans-list").children[0].children[0].children[0].textContent,
+    "Catan",
+  );
+  assertEqual(
+    app.$("#member-loans-list").children[0].children[0].children[3].textContent,
+    "Rendu",
+  );
+  assertEqual(
+    app.$("#member-loans-list").children[1].children[0].children[0].textContent,
+    "Dixit",
+  );
+  assertEqual(
+    app.$("#member-loans-list").children[1].children[0].children[3].textContent,
+    "En cours",
+  );
+  assertEqual(
+    app.$("#member-loans-list").children[2].children[0].children[0].textContent,
+    "Seven Wonders",
+  );
+  assertEqual(
+    app.$("#member-loans-list").children[2].children[0].children[3].textContent,
+    "En retard",
+  );
+});
+
+test("with no loans, display an info message", async () => {
+  const app = await mountApp(
+    {
+      "GET /members": [camille],
+      "GET /members/m1/loans": [],
+    },
+    { hash: "#members" },
+  );
+  await waitFor(() => app.$$("#members-list .row").length === 1);
+  app.click("Emprunts", cardOf(app, "Camille"));
+  await waitFor(
+    () => app.$("#member-loans-dialog").open,
+    "la boîte de liste d'emprunts",
+  );
+  assertIncludes(
+    app.$("#member-loans-empty").textContent,
+    "n'as pas encore emprunté de jeu",
   );
 });
