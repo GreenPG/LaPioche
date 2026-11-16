@@ -234,4 +234,46 @@ final class GameTests: XCTestCase {
             )
         }
     }
+
+    func testSearchGameReturnsOK() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let _ = try await createGame(app, title: "Dixit")
+
+            try await app.test(
+                .GET,
+                "/games?q=catan&players=\(game.minPlayers)&maxDuration=\(game.durationMinutes)",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let data = try res.content.decode([GameDTO].self)
+                    XCTAssertEqual(data.count, 1)
+                    XCTAssertEqual(data.first?.title, game.title)
+                }
+            )
+        }
+    }
+
+    func testSearchGameWithBadMaxDurationReturnsConflict() async throws {
+        try await withApp { app in
+            try await app.test(
+                .GET,
+                "/games?players=0",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .badRequest)
+                }
+            )
+        }
+    }
+
+    func testSearchGameWithBadPlayersReturnsConflict() async throws {
+        try await withApp { app in
+            try await app.test(
+                .GET,
+                "/games?maxDuration=-10",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .badRequest)
+                }
+            )
+        }
+    }
 }
