@@ -118,6 +118,7 @@ async function request(method, path, body) {
 
 export const api = {
   listGames: () => request("GET", "/games"),
+  searchGames: (query) => request("GET", `/games${query}`),
   createGame: (game) => request("POST", "/games", game),
   modifyGame: (id, game) => request("PUT", `/games/${id}`, game),
   deleteGame: (id) => request("DELETE", `/games/${id}`),

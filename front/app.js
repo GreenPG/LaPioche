@@ -183,6 +183,60 @@ $("#add-game").addEventListener("click", () => {
   gameDialog.showModal();
 });
 
+$(".filters").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const title = $(".filters").gameTitle.value;
+  const players = $(".filters").players.value;
+  const maxDuration = $(".filters").maxDuration.value;
+  let isFilterValid = true;
+  let query = "";
+  if (title.length > 0) {
+    query += `q=${title}`;
+  }
+  if (players) {
+    [query, isFilterValid] = getNumberQuery(players, query, "players");
+  }
+  if (maxDuration) {
+    [query, isFilterValid] = getNumberQuery(maxDuration, query, "maxDuration");
+  }
+  if (!isFilterValid) {
+    return;
+  }
+  if (query.length > 0) {
+    query = `?${query}`;
+  }
+  try {
+    const games = await api.searchGames(query);
+    $("#query-empty").hidden = games.length > 0;
+    $("#games-list").replaceChildren(...games.map(gameCard));
+  } catch (error) {
+    showFormError(dialog, error);
+  }
+});
+
+function getNumberQuery(input, query, key) {
+  let isFilterValid = true;
+  if (input > 0 || Number.isInteger(input)) {
+    if (query.length > 0) {
+      query += `&`;
+    }
+    query += `${key}=${input}`;
+  } else {
+    isFilterValid = false;
+    const errorString =
+      key === "maxDuration" ? "La durée maximal" : "Le nombre de joueur";
+    toast(`${errorString} doit être un entier strictement supérieur à 0`);
+  }
+  return [query, isFilterValid];
+}
+
+$("#reset-filter").addEventListener("click", async () => {
+  $(".filters").gameTitle.value = "";
+  $(".filters").players.value = "";
+  $(".filters").maxDuration.value = "";
+  await loadGames();
+});
+
 bindSubmit(gameDialog, gameForm, (data) =>
   api.createGame({
     title: data.get("title").trim(),

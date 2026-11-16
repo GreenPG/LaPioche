@@ -251,6 +251,57 @@ test("deleting game with loans explains that it cannot be deleted", async () => 
   );
 });
 
+test("search game shows one card per game with its availability", async () => {
+  const app = await mountApp({
+    "GET /games": [catan, dixit],
+    "GET /loans/overdue": [],
+    "GET /games?q=cat&players=3&maxDuration=80": [catan],
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 2);
+  const form = app.$(".filters");
+  form.elements.gameTitle.value = "cat";
+  form.elements.players.value = "3";
+  form.elements.maxDuration.value = "80";
+  app.$(".filters").requestSubmit();
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) =>
+          call.method === "GET" &&
+          call.path === "/games" &&
+          call.search === "?q=cat&players=3&maxDuration=80",
+      ),
+    "l'appel GET /games?",
+  );
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  assertIncludes(cardOf(app, "Catan").textContent, "Disponible");
+});
+
+test("search game shows empty result", async () => {
+  const app = await mountApp({
+    "GET /games": [catan, dixit],
+    "GET /loans/overdue": [],
+    "GET /games?q=unknown&players=30&maxDuration=10": [],
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 2);
+  const form = app.$(".filters");
+  form.elements.gameTitle.value = "unknown";
+  form.elements.players.value = "30";
+  form.elements.maxDuration.value = "10";
+  app.$(".filters").requestSubmit();
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) =>
+          call.method === "GET" &&
+          call.path === "/games" &&
+          call.search === "?q=unknown&players=30&maxDuration=10",
+      ),
+    "l'appel GET /games?",
+  );
+  await waitFor(() => app.$$("#games-list .card").length === 0);
+  assertIncludes(app.$("#query-empty").textContent, "Aucun jeu");
+});
 // --- Emprunts
 
 test("borrowing a game sends the game and the chosen member", async () => {

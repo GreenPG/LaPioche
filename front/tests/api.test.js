@@ -106,6 +106,17 @@ test("listOverdueLoans calls GET /loans/overdue", async () => {
   assertEqual(data, loans);
 });
 
+test("searchGames calls GET /games?q=title&players=numberPlayers&maxDuration=maxDuration", async () => {
+  const { fetch, calls } = fakeApi({
+    "GET /games?q=g1&players=4&maxDuration=60": [],
+  });
+  await withFakeFetch(fetch, () =>
+    api.searchGames("?q=g1&players=4&maxDuration=60"),
+  );
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "GET /games");
+  assertEqual(`${calls[0].search}`, "?q=g1&players=4&maxDuration=60");
+});
+
 // --- erreurs
 
 // Attend qu'une promesse échoue et renvoie l'erreur (échoue si elle réussit).
