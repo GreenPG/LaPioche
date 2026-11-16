@@ -73,7 +73,7 @@ function bindSubmit(dialog, form, handler) {
 
 // --- Onglets ---------------------------------------------------------------
 
-const tabs = ["games", "members"];
+const tabs = ["games", "members", "overdue-loans"];
 
 function currentTab() {
   const name = location.hash.slice(1);
@@ -86,7 +86,23 @@ async function refresh() {
     $(`#${name}`).hidden = name !== tab;
     $(`[data-tab="${name}"]`).toggleAttribute("aria-current", name === tab);
   }
-  await run(tab === "games" ? loadGames : loadMembers);
+  switch (tab) {
+    case "games":
+      await run(loadGames);
+      break;
+    case "members":
+      await run(loadMembers);
+      break;
+    case "overdue-loans":
+      await run(loadOverdueLoans);
+      break;
+  }
+  const overduedLoans = await api.listOverdueLoans();
+  $("#overdue-count").hidden = overduedLoans.length == 0;
+  if (overduedLoans.length > 0) {
+    $("#overdue-count").textContent = overduedLoans.length;
+  }
+  // await run(tab === "games" ? loadGames : loadMembers);
 }
 
 window.addEventListener("hashchange", refresh);
@@ -190,6 +206,42 @@ bindSubmit(deleteGameDialog, deleteGameForm, () =>
 );
 
 // --- Emprunts --------------------------------------------------------------
+
+async function loadOverdueLoans() {
+  const overduedLoans = await api.listOverdueLoans();
+  $("#overdue-loans-empty").hidden = overduedLoans.length > 0;
+  $("#overdue-loans-list").replaceChildren(
+    ...(await Promise.all(overduedLoans.map(overdueRow))),
+  );
+}
+
+async function overdueRow(loan) {
+  const game = await api.getGame(loan.gameID);
+  const member = await api.getMember(loan.memberID);
+  const dateFormatOptions = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
+  const daysOfDelay = new Date().getDate() - new Date(loan.dueAt).getDate();
+  return el(
+    "li",
+    { class: "row" },
+    el(
+      "div",
+      { class: "row-main" },
+      el("strong", {}, game.title),
+      el("p", {}, `Emprunté par: ${member.name}`),
+      el(
+        "p",
+        {},
+        `Retour prévu le: ${new Date(loan.dueAt).toLocaleString("fr-FR", dateFormatOptions)}`,
+      ),
+      el("p", { class: "badge late" }, `Jours de retard: ${daysOfDelay}`),
+    ),
+  );
+}
 
 const borrowDialog = $("#borrow-dialog");
 const borrowForm = $("#borrow-form");

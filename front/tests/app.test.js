@@ -72,7 +72,10 @@ const cardOf = (app, title) =>
 // --- Jeux
 
 test("games list shows one card per game with its availability", async () => {
-  const app = await mountApp({ "GET /games": [catan, dixit] });
+  const app = await mountApp({
+    "GET /games": [catan, dixit],
+    "GET /loans/overdue": [],
+  });
   await waitFor(
     () => app.$$("#games-list .card").length === 2,
     "deux cartes de jeu",
@@ -83,7 +86,10 @@ test("games list shows one card per game with its availability", async () => {
 });
 
 test("only an available game offers Borrow", async () => {
-  const app = await mountApp({ "GET /games": [catan, dixit] });
+  const app = await mountApp({
+    "GET /games": [catan, dixit],
+    "GET /loans/overdue": [],
+  });
   await waitFor(() => app.$$("#games-list .card").length === 2);
   const labels = (title) =>
     [...cardOf(app, title).querySelectorAll("button")].map(
@@ -100,7 +106,7 @@ test("only an available game offers Borrow", async () => {
 });
 
 test("with no game, a message invites to add one", async () => {
-  const app = await mountApp({ "GET /games": [] });
+  const app = await mountApp({ "GET /games": [], "GET /loans/overdue": [] });
   await waitFor(() => !app.$("#games-empty").hidden);
   assertIncludes(app.$("#games-empty").textContent, "ne contient aucun jeu");
   assertIncludes(app.$("#games-empty").textContent, "Ajouter un jeu");
@@ -109,6 +115,7 @@ test("with no game, a message invites to add one", async () => {
 test("adding a game posts the form then reloads the list", async () => {
   const app = await mountApp({
     "GET /games": [catan],
+    "GET /loans/overdue": [],
     "POST /games": [201, { ...catan, id: "g3", title: "Dixit" }],
   });
   await waitFor(() => app.$$("#games-list .card").length === 1);
@@ -138,6 +145,7 @@ test("adding a game posts the form then reloads the list", async () => {
 test("a validation error is shown in French and the dialog stays open", async () => {
   const app = await mountApp({
     "GET /games": [],
+    "GET /loans/overdue": [],
     "POST /games": [
       400,
       {
@@ -164,6 +172,7 @@ test("deleting a game", async () => {
   let games = [catan];
   const app = await mountApp({
     "GET /games": () => games,
+    "GET /loans/overdue": [],
     "DELETE /games/g1": () => {
       games = [];
       return [204];
@@ -198,6 +207,7 @@ test("deleting game with loans explains that it cannot be deleted", async () => 
   let games = [catan];
   const app = await mountApp({
     "GET /games": () => games,
+    "GET /loans/overdue": [],
     "GET /members": [camille],
     "POST /loans": [
       201,
@@ -246,6 +256,7 @@ test("deleting game with loans explains that it cannot be deleted", async () => 
 test("borrowing a game sends the game and the chosen member", async () => {
   const app = await mountApp({
     "GET /games": [catan],
+    "GET /loans/overdue": [],
     "GET /members": [camille],
     "POST /loans": [
       201,
@@ -280,7 +291,11 @@ test("borrowing a game sends the game and the chosen member", async () => {
 });
 
 test("borrowing without any member explains that one must be added first", async () => {
-  const app = await mountApp({ "GET /games": [catan], "GET /members": [] });
+  const app = await mountApp({
+    "GET /games": [catan],
+    "GET /loans/overdue": [],
+    "GET /members": [],
+  });
   await waitFor(() => app.$$("#games-list .card").length === 1);
   app.click("Emprunter", cardOf(app, "Catan"));
   await waitFor(
@@ -296,6 +311,7 @@ test("borrowing without any member explains that one must be added first", async
 test("return a game return the updated loan", async () => {
   const app = await mountApp({
     "GET /games": [dixit],
+    "GET /loans/overdue": [],
     "GET /members": [camille],
     "GET /members/m1/loans": [dixitLoan],
     "POST /loans/l2/return": [returnedDixitLoan],
@@ -318,6 +334,7 @@ test("return a game return the updated loan", async () => {
 test("return a game already returned display error message", async () => {
   const app = await mountApp({
     "GET /games": [dixit],
+    "GET /loans/overdue": [],
     "GET /members": [camille],
     "GET /members/m1/loans": [dixitLoan],
     "POST /loans/l2/return": [
@@ -340,11 +357,42 @@ test("return a game already returned display error message", async () => {
   );
 });
 
+test("overdue loans tab list the overdue loans", async () => {
+  const app = await mountApp(
+    {
+      "GET /loans/overdue": [sevenWondersLoan],
+      "GET /games/g3": sevenWonders,
+      "GET /members/m1": camille,
+    },
+    { hash: "#overdue-loans" },
+  );
+  await waitFor(() => app.$$("#overdue-loans-list .row").length === 1);
+  assertIncludes(
+    app.$("#overdue-loans-list .row").textContent,
+    "Seven Wonders",
+  );
+  assertIncludes(app.$("#overdue-loans-list .row").textContent, "Camille");
+});
+
+test("with no overdue loans, display an info message", async () => {
+  const app = await mountApp(
+    {
+      "GET /loans/overdue": [],
+    },
+    { hash: "#overdue-loans" },
+  );
+  await waitFor(() => !app.$("#overdue-loans-empty").hidden);
+  assertIncludes(
+    app.$("#overdue-loans-empty").textContent,
+    "Aucun emprunt en retard",
+  );
+});
+
 // --- Adhérent·es
 
 test("members tab lists the members", async () => {
   const app = await mountApp(
-    { "GET /members": [camille] },
+    { "GET /members": [camille], "GET /loans/overdue": [] },
     { hash: "#members" },
   );
   await waitFor(() => app.$$("#members-list .row").length === 1);
@@ -356,7 +404,10 @@ test("members tab lists the members", async () => {
 });
 
 test("with no member, a message invites to add one", async () => {
-  const app = await mountApp({ "GET /members": [] }, { hash: "#members" });
+  const app = await mountApp(
+    { "GET /members": [], "GET /loans/overdue": [] },
+    { hash: "#members" },
+  );
   await waitFor(() => !app.$("#members-empty").hidden);
   assertIncludes(
     app.$("#members-empty").textContent,
@@ -366,7 +417,11 @@ test("with no member, a message invites to add one", async () => {
 
 test("adding a member posts the form", async () => {
   const app = await mountApp(
-    { "GET /members": [], "POST /members": [201, camille] },
+    {
+      "GET /members": [],
+      "GET /loans/overdue": [],
+      "POST /members": [201, camille],
+    },
     { hash: "#members" },
   );
   await waitFor(() => !app.$("#members-empty").hidden);
@@ -392,6 +447,7 @@ test("an email already in use is shown in French", async () => {
   const app = await mountApp(
     {
       "GET /members": [],
+      "GET /loans/overdue": [],
       "POST /members": [
         409,
         { error: true, reason: "A member with this email already exists" },
@@ -416,6 +472,7 @@ test("modify a member", async () => {
   const app = await mountApp(
     {
       "GET /members": [camille],
+      "GET /loans/overdue": [],
       "PUT /members/m1": [
         200,
         { name: "Charles", email: "charles@example.com" },
@@ -453,6 +510,7 @@ test("update a member and an email already in use is shown in French", async () 
   const app = await mountApp(
     {
       "GET /members": [camille],
+      "GET /loans/overdue": [],
       "PUT /members/m1": [
         409,
         { error: true, reason: "A member with this email already exists" },
@@ -481,6 +539,7 @@ test("list member loans with all status", async () => {
   const app = await mountApp(
     {
       "GET /members": [camille],
+      "GET /loans/overdue": [],
       "GET /members/m1/loans": [catanLoan, dixitLoan, sevenWondersLoan],
       "GET /games/g1": catan,
       "GET /games/g2": dixit,
@@ -552,6 +611,7 @@ test("with no loans, display an info message", async () => {
   const app = await mountApp(
     {
       "GET /members": [camille],
+      "GET /loans/overdue": [],
       "GET /members/m1/loans": [],
     },
     { hash: "#members" },

@@ -5,23 +5,47 @@ import { fakeApi, withFakeFetch } from "./helpers.js";
 // --- translateError : les messages de l'API deviennent des phrases en français
 
 test("translateError translates a known message", () => {
-  assertEqual(translateError(409, "Game is already on loan"), "Ce jeu est déjà emprunté : il faut d'abord le rendre.");
+  assertEqual(
+    translateError(409, "Game is already on loan"),
+    "Ce jeu est déjà emprunté : il faut d'abord le rendre.",
+  );
 });
 
 test("translateError translates each validation error separately", () => {
-  const message = translateError(400, "title is empty, minPlayers is less than minimum of 1");
-  assertEqual(message, "Le titre est obligatoire. Le nombre minimum de joueur·ses doit être d'au moins 1.");
+  const message = translateError(
+    400,
+    "title is empty, minPlayers is less than minimum of 1",
+  );
+  assertEqual(
+    message,
+    "Le titre est obligatoire. Le nombre minimum de joueur·ses doit être d'au moins 1.",
+  );
 });
 
 test("translateError translates a missing field and an invalid email", () => {
-  assertEqual(translateError(400, "name is required"), "Le nom est obligatoire.");
-  assertIncludes(translateError(400, "email is not a valid email address"), "adresse e-mail n'est pas valide");
+  assertEqual(
+    translateError(400, "name is required"),
+    "Le nom est obligatoire.",
+  );
+  assertIncludes(
+    translateError(400, "email is not a valid email address"),
+    "adresse e-mail n'est pas valide",
+  );
 });
 
 test("translateError never lets unknown English through", () => {
-  assertEqual(translateError(409, "Something unexpected"), "Cette action est impossible dans l'état actuel des données.");
-  assertEqual(translateError(500, "boom"), "Le serveur a rencontré une erreur. Réessayez dans un instant.");
-  assertEqual(translateError(418, "teapot"), "Une erreur est survenue. Réessayez.");
+  assertEqual(
+    translateError(409, "Something unexpected"),
+    "Cette action est impossible dans l'état actuel des données.",
+  );
+  assertEqual(
+    translateError(500, "boom"),
+    "Le serveur a rencontré une erreur. Réessayez dans un instant.",
+  );
+  assertEqual(
+    translateError(418, "teapot"),
+    "Une erreur est survenue. Réessayez.",
+  );
 });
 
 // --- requêtes envoyées à l'API
@@ -34,7 +58,12 @@ test("listGames calls GET /games", async () => {
 
 test("createGame sends a JSON POST", async () => {
   const { fetch, calls } = fakeApi({ "POST /games": [201, { id: "1" }] });
-  const game = { title: "Catan", minPlayers: 3, maxPlayers: 4, durationMinutes: 90 };
+  const game = {
+    title: "Catan",
+    minPlayers: 3,
+    maxPlayers: 4,
+    durationMinutes: 90,
+  };
   const created = await withFakeFetch(fetch, () => api.createGame(game));
   assertEqual(calls[0].method, "POST");
   assertEqual(calls[0].body, game);
@@ -45,6 +74,36 @@ test("borrow sends the game and the member", async () => {
   const { fetch, calls } = fakeApi({ "POST /loans": [201, { id: "l1" }] });
   await withFakeFetch(fetch, () => api.borrow("g1", "m1"));
   assertEqual(calls[0].body, { gameID: "g1", memberID: "m1" });
+});
+
+test("getMember calls GET /members/:id", async () => {
+  const { fetch, calls } = fakeApi({
+    "GET /members/m1": [
+      200,
+      { id: "1", name: "Camille", email: "camille@example.com" },
+    ],
+  });
+  let member = await withFakeFetch(fetch, () => api.getMember("m1"));
+  assertEqual(calls[0].method, "GET");
+  assertEqual(member.id, "1");
+});
+
+test("listOverdueLoans calls GET /loans/overdue", async () => {
+  const loans = [
+    {
+      id: 1,
+      gameID: 1,
+      memberID: 1,
+      borrowedAt: "2026-11-10T00:00:00Z",
+      dueAt: "2026-11-24T00:00:00Z",
+    },
+  ];
+  const { fetch, calls } = fakeApi({
+    "GET /loans/overdue": loans,
+  });
+  let data = await withFakeFetch(fetch, () => api.listOverdueLoans());
+  assertEqual(calls[0].method, "GET");
+  assertEqual(data, loans);
 });
 
 // --- erreurs
@@ -63,15 +122,24 @@ test("an unreachable server gives a clear message", async () => {
   const unreachable = async () => {
     throw new TypeError("Failed to fetch");
   };
-  const error = await expectError(withFakeFetch(unreachable, () => api.listGames()));
+  const error = await expectError(
+    withFakeFetch(unreachable, () => api.listGames()),
+  );
   assertEqual(error.status, 0);
   assertIncludes(error.message, "Impossible de joindre le serveur");
 });
 
 test("a game already on loan (409) gives a French message", async () => {
-  const { fetch } = fakeApi({ "POST /loans": [409, { error: true, reason: "Game is already on loan" }] });
-  const error = await expectError(withFakeFetch(fetch, () => api.borrow("g1", "m1")));
+  const { fetch } = fakeApi({
+    "POST /loans": [409, { error: true, reason: "Game is already on loan" }],
+  });
+  const error = await expectError(
+    withFakeFetch(fetch, () => api.borrow("g1", "m1")),
+  );
   assertTrue(error instanceof ApiError, "l'erreur devrait être une ApiError");
   assertEqual(error.status, 409);
-  assertEqual(error.message, "Ce jeu est déjà emprunté : il faut d'abord le rendre.");
+  assertEqual(
+    error.message,
+    "Ce jeu est déjà emprunté : il faut d'abord le rendre.",
+  );
 });
