@@ -167,4 +167,59 @@ final class LoanTests: XCTestCase {
             )
         }
     }
+
+    func testLoanOverdueReturnsOK() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let member = try await createMember(app)
+            let gameID = try XCTUnwrap(game.id)
+            let memberID = try XCTUnwrap(member.id)
+            let _ = try await insertLoan(
+                app,
+                gameID: gameID,
+                memberID: memberID,
+                borrowedAt: Date().addingTimeInterval(-10 * 24 * 60),
+                dueAt: Date().addingTimeInterval(-1 * 24 * 60)
+            )
+
+            try await app.test(
+                .GET,
+                "loans/overdue",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let overduedLoans = try res.content.decode([LoanDTO].self)
+                    XCTAssertEqual(overduedLoans.count, 1)
+                    XCTAssertEqual(overduedLoans.first?.gameID, gameID)
+                    XCTAssertEqual(overduedLoans.first?.memberID, memberID)
+                }
+            )
+        }
+    }
+
+    func testLoanOverdueOnlyReturnedLoansReturnOK() async throws {
+        try await withApp { app in
+            let game = try await createGame(app)
+            let member = try await createMember(app)
+            let gameID = try XCTUnwrap(game.id)
+            let memberID = try XCTUnwrap(member.id)
+            let _ = try await insertLoan(
+                app,
+                gameID: gameID,
+                memberID: memberID,
+                borrowedAt: Date().addingTimeInterval(-10 * 24 * 60),
+                dueAt: Date().addingTimeInterval(-1 * 24 * 60),
+                returnedAt: Date().addingTimeInterval(-5 * 24 * 60)
+            )
+
+            try await app.test(
+                .GET,
+                "loans/overdue",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let overduedLoans = try res.content.decode([LoanDTO].self)
+                    XCTAssertEqual(overduedLoans.count, 0)
+                }
+            )
+        }
+    }
 }
