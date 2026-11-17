@@ -117,6 +117,150 @@ test("searchGames calls GET /games?q=title&players=numberPlayers&maxDuration=max
   assertEqual(`${calls[0].search}`, "?q=g1&players=4&maxDuration=60");
 });
 
+test("modifyGame calls PUT /games/:id", async () => {
+  const { fetch, calls } = fakeApi({
+    "PUT /games/1": [
+      200,
+      {
+        id: 1,
+        title: "Catan",
+        minPlayers: 3,
+        maxPlayers: 4,
+        durationMinutes: 80,
+        isAvailable: true,
+      },
+    ],
+  });
+  const game = {
+    title: "Catan",
+    minPlayers: 3,
+    maxPlayers: 4,
+    durationMinutes: 80,
+  };
+  const modified = await withFakeFetch(fetch, () => api.modifyGame(1, game));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "PUT /games/1");
+  assertEqual(calls[0].body, game);
+  assertEqual(modified.id, 1);
+});
+
+test("deleteGame calls DELETE /games/:id", async () => {
+  const { fetch, calls } = fakeApi({
+    "DELETE /games/1": [204],
+  });
+  await withFakeFetch(fetch, () => api.deleteGame(1));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "DELETE /games/1");
+});
+
+test("getGame calls GET /games/:id", async () => {
+  const { fetch, calls } = fakeApi({
+    "GET /games/1": [
+      200,
+      {
+        id: 1,
+        title: "Catan",
+        minPlayers: 3,
+        maxPlayers: 4,
+        durationMinutes: 80,
+        isAvailable: true,
+      },
+    ],
+  });
+  const game = await withFakeFetch(fetch, () => api.getGame(1));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "GET /games/1");
+  assertEqual(game.id, 1);
+});
+
+test("listMembers calls GET /members", async () => {
+  const { fetch, calls } = fakeApi({
+    "GET /members": [
+      {
+        id: 1,
+        name: "Camille",
+        email: "camille@example.com",
+      },
+    ],
+  });
+  const members = await withFakeFetch(fetch, () => api.listMembers());
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "GET /members");
+  assertEqual(members.length, 1);
+  assertEqual(members[0].id, 1);
+});
+
+test("listMemberLoans GET /member/:id/loans", async () => {
+  const { fetch, calls } = fakeApi({
+    "GET /members/1/loans": [
+      {
+        id: 1,
+        gameID: 1,
+        member: 1,
+        borrowedAt: Date(),
+        dueAt: Date(),
+        returnedAt: Date(),
+      },
+    ],
+  });
+  const loans = await withFakeFetch(fetch, () => api.listMemberLoans(1));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "GET /members/1/loans");
+  assertEqual(loans.length, 1);
+  assertEqual(loans[0].id, 1);
+});
+
+test("createMember calls POST /members", async () => {
+  const { fetch, calls } = fakeApi({
+    "POST /members": [
+      201,
+      { id: 1, name: "camille", email: "camille@example.com" },
+    ],
+  });
+  const member = {
+    name: "camille",
+    email: "camille@example.com",
+  };
+  const created = await withFakeFetch(fetch, () => api.createMember(member));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "POST /members");
+  assertEqual(created.id, 1);
+});
+
+test("updateMember calls PUT /members/:id", async () => {
+  const { fetch, calls } = fakeApi({
+    "PUT /members/1": { id: 1, name: "Camille", email: "camille@example.com" },
+  });
+  const member = {
+    name: "camille",
+    email: "camille@example.com",
+  };
+  const updated = await withFakeFetch(fetch, () => api.updateMember(1, member));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "PUT /members/1");
+  assertEqual(updated.id, 1);
+});
+
+test("deleteMember calls DELETE /members/:id", async () => {
+  const { fetch, calls } = fakeApi({
+    "DELETE /members/1": [204],
+  });
+  await withFakeFetch(fetch, () => api.deleteMember(1));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "DELETE /members/1");
+});
+
+test("returnLoan calls POST /loans/:id/return", async () => {
+  const { fetch, calls } = fakeApi({
+    "POST /loans/1/return": [
+      200,
+      {
+        id: 1,
+        gameID: 1,
+        memberID: 1,
+        borrowedAt: Date(),
+        dueAt: Date(),
+        returnedAt: Date(),
+      },
+    ],
+  });
+  const loan = await withFakeFetch(fetch, () => api.returnLoan(1));
+  assertEqual(`${calls[0].method} ${calls[0].path}`, "POST /loans/1/return");
+  assertEqual(loan.id, 1);
+});
+
 // --- erreurs
 
 // Attend qu'une promesse échoue et renvoie l'erreur (échoue si elle réussit).
