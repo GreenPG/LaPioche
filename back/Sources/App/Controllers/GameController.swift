@@ -13,26 +13,35 @@ struct GameController: RouteCollection {
 
     @Sendable
     func index(req: Request) async throws -> [GameDTO] {
+        let filters = try req.query.decode(SearchQueryDTO.self)
         let query = Game.query(on: req.db)
-        if let queryTitle: String = req.query["q"] {
-            query.filter(\.$title ~~ queryTitle)
+        if let title = filters.q {
+            query.filter(\.$title ~~ title)
         }
-        if let queryPlayers: Int = req.query["players"] {
-            guard queryPlayers > 0 else {
+        if let players = filters.players {
+            //            guard queryPlayers > 0 else {
+            guard players > 0 else {
                 throw Abort(.badRequest, reason: "players is less than minimum of 1")
             }
-            query.filter(\.$minPlayers <= queryPlayers)
-            query.filter(\.$maxPlayers >= queryPlayers)
+            query.filter(\.$minPlayers <= players)
+            query.filter(\.$maxPlayers >= players)
         }
-        if let queryDuration: Int = req.query["maxDuration"] {
-            guard queryDuration > 0 else {
+        if let maxDuration = filters.maxDuration {
+            guard maxDuration > 0 else {
                 throw Abort(.badRequest, reason: "maxDuration is less than minimum of 1")
             }
-            query.filter(\.$durationMinutes >= queryDuration)
+            query.filter(\.$durationMinutes >= maxDuration)
         }
-        let games = try await query
+        var games = try await query
             .with(\.$loans)
             .all()
+        if let isAvailable = filters.available {
+            if isAvailable {
+                games = games.filter({ $0.isAvailable})
+            } else {
+                games = games.filter({ !$0.isAvailable})
+            }
+        }
         return games.map { $0.toDTO() }
     }
 

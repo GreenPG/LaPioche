@@ -242,7 +242,7 @@ final class GameTests: XCTestCase {
 
             try await app.test(
                 .GET,
-                "/games?q=catan&players=\(game.minPlayers)&maxDuration=\(game.durationMinutes)",
+                "games?q=catan&players=\(game.minPlayers)&maxDuration=\(game.durationMinutes)",
                 afterResponse: { res async throws in
                     XCTAssertEqual(res.status, .ok)
                     let data = try res.content.decode([GameDTO].self)
@@ -257,7 +257,7 @@ final class GameTests: XCTestCase {
         try await withApp { app in
             try await app.test(
                 .GET,
-                "/games?players=0",
+                "games?players=0",
                 afterResponse: { res async throws in
                     XCTAssertEqual(res.status, .badRequest)
                 }
@@ -269,9 +269,63 @@ final class GameTests: XCTestCase {
         try await withApp { app in
             try await app.test(
                 .GET,
-                "/games?maxDuration=-10",
+                "games?maxDuration=-10",
                 afterResponse: { res async throws in
                     XCTAssertEqual(res.status, .badRequest)
+                }
+            )
+        }
+    }
+
+    func testSearchAvailableGamesReturnsOK() async throws {
+        try await withApp { app in
+
+            let availableGame = try await createGame(app)
+            let unavailableGame = try await createGame(app, title: "Dixit")
+            let member = try await createMember(app)
+            let _ = try await insertLoan(
+                app,
+                gameID: XCTUnwrap(unavailableGame.id),
+                memberID: XCTUnwrap(member.id),
+                borrowedAt: Date(),
+                dueAt: Date().addingTimeInterval(14 * 24 * 60)
+            )
+
+            try await app.test(
+                .GET,
+                "games?available=true",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let games = try res.content.decode([GameDTO].self)
+                    XCTAssertEqual(games.count, 1)
+                    XCTAssertEqual(games.first?.title, availableGame.title)
+                }
+            )
+        }
+    }
+
+    func testSearchUnavailableGamesReturnsOK() async throws {
+        try await withApp { app in
+
+            let _ = try await createGame(app)
+            let unavailableGame = try await createGame(app, title: "Dixit")
+            let member = try await createMember(app)
+            let _ = try await insertLoan(
+                app,
+                gameID: XCTUnwrap(unavailableGame.id),
+                memberID: XCTUnwrap(member.id),
+                borrowedAt: Date(),
+                dueAt: Date().addingTimeInterval(14 * 24 * 60)
+            )
+
+            try await app.test(
+                .GET,
+                "games?available=false",
+                afterResponse: { res async throws in
+                    XCTAssertEqual(res.status, .ok)
+                    let games = try res.content.decode([GameDTO].self)
+                    XCTAssertEqual(games.count, 1)
+                    XCTAssertEqual(games.first?.title, unavailableGame.title)
                 }
             )
         }
