@@ -302,6 +302,54 @@ test("search game shows empty result", async () => {
   await waitFor(() => app.$$("#games-list .card").length === 0);
   assertIncludes(app.$("#query-empty").textContent, "Aucun jeu");
 });
+
+test("search available games shows one card per game with its availability", async () => {
+  const app = await mountApp({
+    "GET /games": [catan, dixit],
+    "GET /loans/overdue": [],
+    "GET /games?available=true": [catan],
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 2);
+  const form = app.$(".filters");
+  form.elements.gameAvailable.click();
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) =>
+          call.method === "GET" &&
+          call.path === "/games" &&
+          call.search === "?available=true",
+      ),
+    "l'appel GET /games?available=true",
+  );
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  assertIncludes(cardOf(app, "Catan").textContent, "Disponible");
+});
+
+test("search games with full filters shows one card per game with its availability", async () => {
+  const app = await mountApp({
+    "GET /games": [catan, dixit, sevenWonders],
+    "GET /loans/overdue": [],
+    "GET /games?maxDuration=80&available=true": [catan],
+  });
+  await waitFor(() => app.$$("#games-list .card").length === 3);
+  const form = app.$(".filters");
+  form.elements.maxDuration.value = "80";
+  form.elements.gameAvailable.click();
+  await waitFor(
+    () =>
+      app.calls.some(
+        (call) =>
+          call.method === "GET" &&
+          call.path === "/games" &&
+          call.search === "?maxDuration=80&available=true",
+      ),
+    "l'appel GET /games?maxDuration=80&available=true",
+  );
+  await waitFor(() => app.$$("#games-list .card").length === 1);
+  assertIncludes(cardOf(app, "Catan").textContent, "Disponible");
+});
+
 // --- Emprunts
 
 test("borrowing a game sends the game and the chosen member", async () => {

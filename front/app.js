@@ -185,9 +185,18 @@ $("#add-game").addEventListener("click", () => {
 
 $(".filters").addEventListener("submit", async (event) => {
   event.preventDefault();
+  await searchGames();
+});
+
+$("#game-available").addEventListener("click", async () => {
+  await searchGames();
+});
+
+async function searchGames() {
   const title = $(".filters").gameTitle.value;
   const players = $(".filters").players.value;
   const maxDuration = $(".filters").maxDuration.value;
+  const isAvailable = $("#game-available").checked;
   let isFilterValid = true;
   let query = "";
   if (title.length > 0) {
@@ -198,6 +207,12 @@ $(".filters").addEventListener("submit", async (event) => {
   }
   if (maxDuration) {
     [query, isFilterValid] = getNumberQuery(maxDuration, query, "maxDuration");
+  }
+  if (isAvailable) {
+    if (query.length > 0) {
+      query += "&";
+    }
+    query += "available=true";
   }
   if (!isFilterValid) {
     return;
@@ -212,7 +227,7 @@ $(".filters").addEventListener("submit", async (event) => {
   } catch (error) {
     showFormError(dialog, error);
   }
-});
+}
 
 function getNumberQuery(input, query, key) {
   let isFilterValid = true;
@@ -231,9 +246,6 @@ function getNumberQuery(input, query, key) {
 }
 
 $("#reset-filter").addEventListener("click", async () => {
-  $(".filters").gameTitle.value = "";
-  $(".filters").players.value = "";
-  $(".filters").maxDuration.value = "";
   await loadGames();
 });
 

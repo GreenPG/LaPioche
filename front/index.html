@@ -39,8 +39,13 @@
                 <label>Titre<input type="text" name="gameTitle" value=""></label>
                 <label>Nombre de joueurs<input type="number" name="players" value=""></label>
                 <label>Durée maximum<input type="number" name="maxDuration" value=""></label>
+                <!-- <label>Disponible<input type="number" name="maxDuration" value=""></label> -->
                 <button id="search-games" type="submit" class="primary">Rechercher</button>
-                <button id="reset-filter" type="button">Réinitialiser</button>
+                <button id="reset-filter" type="reset">Réinitialiser</button>
+                <label for="game-available">Disponible uniquement
+                    <!-- <button id="game-available" role="switch"></button> -->
+                    <input id="game-available" type="checkbox" name="gameAvailable" value="" switch>
+                </label>
             </form>
             <p id="games-empty" class="empty" hidden>
                 La ludothèque ne contient aucun jeu pour le moment. Cliquez sur «
