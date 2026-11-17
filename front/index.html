@@ -35,9 +35,19 @@
                     Ajouter un jeu
                 </button>
             </div>
+            <form class="filters">
+                <label>Titre<input type="text" name="gameTitle" value=""></label>
+                <label>Nombre de joueurs<input type="number" name="players" value=""></label>
+                <label>Durée maximum<input type="number" name="maxDuration" value=""></label>
+                <button id="search-games" type="submit" class="primary">Rechercher</button>
+                <button id="reset-filter" type="button">Réinitialiser</button>
+            </form>
             <p id="games-empty" class="empty" hidden>
                 La ludothèque ne contient aucun jeu pour le moment. Cliquez sur «
                 Ajouter un jeu » pour créer le premier.
+            </p>
+            <p id="query-empty" class="empty" hidden>
+                Aucun jeu ne correspond à votre recherche
             </p>
             <ul id="games-list" class="cards"></ul>
         </section>
