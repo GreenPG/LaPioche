@@ -1,4 +1,5 @@
 import { API_URL } from "./config.js";
+import { getJWT, logout } from "./app.js";
 
 // Client de l'API La Pioche : une fonction par route.
 // Une route ajoutée côté Vapor s'ajoute dans l'objet `api`, en bas du fichier.
@@ -43,6 +44,9 @@ const knownMessages = {
     "Suppression impossible : cet·te adhérent·e a un historique d'emprunts, conservé même quand tout est rendu.",
   "A member with this email already exists":
     "Un·e autre adhérent·e utilise déjà cette adresse e-mail.",
+  "Wrong email": "Mauvais email ou mot de passe",
+  "Wrong password": "Mauvais email ou mot de passe",
+  "Email already used": "Cette adresse email est déjà utilisé",
 };
 
 // Les erreurs de validation de Vapor arrivent regroupées :
@@ -90,13 +94,20 @@ export function translateError(status, reason) {
 
 async function request(method, path, body) {
   let response;
+  let headers = new Headers();
+  if (!["/auth/login", "/auth/register"].includes(path)) {
+    headers.append("Authorization", `Bearer ${getJWT()}`);
+  }
+  if (body !== undefined) {
+    headers.append("Content-Type", "application/json");
+  }
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
-      headers: body === undefined ? {} : { "Content-Type": "application/json" },
+      headers: headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  } catch {
+  } catch (error) {
     throw new ApiError(
       0,
       "Impossible de joindre le serveur. Vérifiez qu'il est bien lancé.",
@@ -108,6 +119,7 @@ async function request(method, path, body) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     // Vapor renvoie { error: true, reason: "..." }
+
     throw new ApiError(
       response.status,
       translateError(response.status, data?.reason),
@@ -137,4 +149,5 @@ export const api = {
 
   login: (loginDTO) => request("POST", "/auth/login", loginDTO),
   register: (registerDTO) => request("POST", "/auth/register", registerDTO),
+  getMe: () => request("GET", "/auth/me"),
 };
