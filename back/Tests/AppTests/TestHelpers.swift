@@ -1,5 +1,6 @@
 @testable import App
 import XCTVapor
+import JWT
 
 func withApp(_ test: (Application) async throws -> Void) async throws {
     let app = try await Application.make(.testing)
@@ -18,7 +19,8 @@ func createGame(
     title: String = "Catan",
     minPlayers: Int = 3,
     maxPlayers: Int = 4,
-    durationMinutes: Int = 90
+    durationMinutes: Int = 90,
+    token: String
 ) async throws -> GameDTO {
     var game: GameDTO?
     try await app.test(.POST, "games", beforeRequest: { req in
@@ -28,6 +30,7 @@ func createGame(
             maxPlayers: maxPlayers,
             durationMinutes: durationMinutes
         ))
+        req.headers.bearerAuthorization = BearerAuthorization(token: token)
     }, afterResponse: { res async throws in
         game = try res.content.decode(GameDTO.self)
     })
@@ -37,11 +40,13 @@ func createGame(
 func createMember(
     _ app: Application,
     name: String = "Camille",
-    email: String = "camille@example.com"
+    email: String = "camille@example.com",
+    token: String
 ) async throws -> MemberDTO {
     var member: MemberDTO?
     try await app.test(.POST, "members", beforeRequest: { req in
         try req.content.encode(CreateMemberDTO(name: name, email: email))
+        req.headers.bearerAuthorization = BearerAuthorization(token: token)
     }, afterResponse: { res async throws in
         member = try res.content.decode(MemberDTO.self)
     })
@@ -55,7 +60,7 @@ func insertLoan(
     memberID: UUID,
     borrowedAt: Date,
     dueAt: Date,
-    returnedAt: Date? = nil
+    returnedAt: Date? = nil,
 ) async throws -> Loan {
     let loan = Loan(gameID: gameID, memberID: memberID, borrowedAt: borrowedAt, dueAt: dueAt)
     loan.returnedAt = returnedAt

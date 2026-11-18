@@ -4,11 +4,12 @@ import Vapor
 struct GameController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         let games = routes.grouped("games")
-        games.get(use: index)
-        games.post(use: create)
-        games.get(":gameID", use: show)
-        games.put(":gameID", use: modify)
-        games.delete(":gameID", use: delete)
+        let protected = games.grouped(JWTMiddleware())
+        protected.get(use: index)
+        protected.post(use: create)
+        protected.get(":gameID", use: show)
+        protected.put(":gameID", use: modify)
+        protected.delete(":gameID", use: delete)
     }
 
     @Sendable

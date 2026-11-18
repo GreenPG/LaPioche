@@ -4,9 +4,10 @@ import Vapor
 struct LoanController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         let loans = routes.grouped("loans")
-        loans.post(use: create)
-        loans.post(":loanID", "return", use: returnLoan)
-        loans.get("overdue", use: getOverduedLoans)
+        let protected = loans.grouped(JWTMiddleware())
+        protected.post(use: create)
+        protected.post(":loanID", "return", use: returnLoan)
+        protected.get("overdue", use: getOverduedLoans)
     }
 
     @Sendable

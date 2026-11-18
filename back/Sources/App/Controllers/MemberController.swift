@@ -3,7 +3,7 @@ import Vapor
 
 struct MemberController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
-        let members = routes.grouped("members")
+        let members = routes.grouped("members").grouped(JWTMiddleware())
         members.get(use: index)
         members.post(use: create)
         members.get(":memberID", use: show)
