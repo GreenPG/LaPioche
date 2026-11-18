@@ -25,6 +25,10 @@
             <p id="overdue-count" class="count" hidden></p>
         </nav>
         <a class="docs-link" id="docs-link" href="http://localhost:8081/">Documentation API</a>
+        <div id="profile" hidden>
+            <p id="user-email"></p>
+            <button id="logout-button" class="danger" type="button">Se déconnecter</button>
+        </div>
     </header>
 
     <main>
@@ -32,22 +36,30 @@
         <section id="login" class="tab" hidden>
             <form id="login-form" novalidate data-customvalidate>
                 <h2>Connexion</h2>
-                <label>Email<input type="text" name="email" value="" required data-errorfieldname><span
-                        class="formError"></span></label>
+                <label>Email<input type="email" name="email" value="" required data-errorfieldname="Email"><span
+                        class="field-error"></span></label>
                 <label>Mot de passe<input type="password" name="password" value="" required minlength=8
-                        data-errorfieldname><span class="formError"></span></label>
+                        data-errorfieldname="Mot de passe"><span class="field-error"></span></label>
                 <button id="login" type="submit" class="primary">Connectez-vous</button>
+                <p class="form-error" role="alert" hidden></p>
                 <p>Pas encore de compte ? <a href="#register">Inscrivez-vous ici<a /></p>
             </form>
         </section>
         <section id="register" class="tab" hidden>
-            <form id="register-form">
+            <form id="register-form" novalidate data-customvalidate>
                 <h2>Inscription</h2>
-                <label>Email<input type="email" name="email" placeholder="Email" value="" required></label>
-                <label>Mot de passe<input type="password" name="password" value="" required minlength=8></label>
-                <label>Confirmer votre mot de passe<input type="password" name="password-confirmation" value="" required
-                        minlength=8></label>
+                <label>Email<input type="email" name="email" placeholder="Email" value="" required
+                        data-errorfieldname="Email"><span class="field-error"></span></label>
+                <label>Mot de passe<input id="register-password" type="password" name="password"
+                        placeholder="Mot de passe" value="" required minlength=8
+                        data-errorfieldname="Mot de passe"><span class="field-error"></span></label>
+                <label>Confirmer votre mot de passe<input type="password" placeholder="Confirmez le mot de passe"
+                        name="password-confirmation" value="" required minlength=8
+                        data-errorfieldname="Confirmation de mot de passe" data-mustmatch="register-password"
+                        data-mustmatcherror="password and confirm-password does not match"><span
+                        class="field-error"></span></label>
                 <button id="register" type="submit" class="primary">Inscrivez-vous</button>
+                <p class="form-error" role="alert" hidden></p>
                 <p>Vous avez déjà un compte ? <a href="#login">Cliquez ici</a></p>
             </form>
         </section>

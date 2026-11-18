@@ -1,5 +1,5 @@
 import { API_URL } from "./config.js";
-import { api } from "./api.js";
+import { api, setJWT, deleteJWT } from "./api.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -90,14 +90,22 @@ async function refresh() {
       $("#overdue-count").textContent = overduedLoans.length;
     }
   } else {
-    tab = location.hash.slice(1) === "login" ? "login" : "register";
+    try {
+      let user = await api.getMe();
+      isLoggedIn = true;
+      $("#profile p").textContent = user.email;
+      tab = currentTab();
+    } catch {
+      tab = location.hash.slice(1) === "register" ? "register" : "login";
+    }
   }
   for (const name of tabs) {
     $(`#${name}`).hidden = name !== tab;
-    if (isLoggedIn) {
+    if (isLoggedIn && !["login", "register"].includes(name)) {
       $(`[data-tab="${name}"]`).toggleAttribute("aria-current", name === tab);
     }
   }
+  $("#profile").hidden = !isLoggedIn;
   switch (tab) {
     case "games":
       await run(loadGames);
@@ -122,24 +130,72 @@ const registerForm = $("#register-form");
 var accountEmail = null;
 
 loginForm.addEventListener("submit", async (e) => {
+  const errorField = $(".form-error", loginForm);
   e.preventDefault();
-  if (!validateForm($("#loginForm"))) {
+  loginForm.querySelectorAll(".field-error").forEach((element) => {
+    element.textContent = "";
+  });
+  errorField.hidden = true;
+  if (validateForm($("#login-form"))) {
     return;
   }
-  // let authDTO = await api.login({
-  //   email: loginForm.email.value,
-  //   password: loginForm.email.password,
-  // });
-  //
-  // document.cookie = `jwttoken=${token}`;
-  // emailAccount = authDTO.user.email;
-  // window.location.hash = "#games";
+  try {
+    let authDTO = await api.login({
+      email: loginForm.email.value,
+      password: loginForm.password.value,
+    });
+    afterLogin(authDTO);
+  } catch (error) {
+    errorField.textContent = error ? error.message : "";
+    errorField.hidden = !error;
+  }
 });
+
+registerForm.addEventListener("submit", async (e) => {
+  const errorField = $(".form-error", registerForm);
+  e.preventDefault();
+  registerForm.querySelectorAll(".field-error").forEach((element) => {
+    element.textContent = "";
+  });
+  errorField.hidden = true;
+  if (validateForm($("#register-form"))) {
+    return;
+  }
+  try {
+    let authDTO = await api.register({
+      email: registerForm.email.value,
+      password: registerForm.password.value,
+    });
+    afterLogin(authDTO);
+  } catch (error) {
+    errorField.textContent = error ? error.message : "";
+    errorField.hidden = !error;
+  }
+});
+
+function afterLogin(authDTO) {
+  isLoggedIn = true;
+  setJWT(authDTO.token, authDTO.expiresAt);
+  accountEmail = authDTO.user.email;
+  $("#profile p").textContent = `Utilisateur: ${authDTO.user.email}`;
+  window.location.hash = "#games";
+  refresh();
+}
+
+$("#logout-button").addEventListener("click", () => {
+  logout();
+});
+
+export function logout() {
+  isLoggedIn = false;
+  deleteJWT();
+  refresh();
+}
 
 function validateForm(form) {
   let isValid = true;
   form.querySelectorAll("input").forEach((input) => {
-    if (!valdateField(input)) {
+    if (!validateField(input)) {
       isValid = false;
     }
   });
@@ -149,8 +205,9 @@ function validateForm(form) {
 function validateField(field) {
   let attributes = field.getAttributeNames();
   let parent = field.parentNode;
-  let errorField = parent.querySelector(".formError");
+  let errorField = parent.querySelector(".field-error");
 
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   let isError = false;
 
   if (attributes.includes("required") && field.value === "") {
@@ -160,7 +217,7 @@ function validateField(field) {
     attributes.includes("minlength") &&
     field.value.length < field.getAttribute("minlength")
   ) {
-    errorField.textContent = `Le ${field.getAttribute("minlength")} doit faire au moins 8 caractères`;
+    errorField.textContent = `Le ${field.dataset.errorfieldname} doit faire au moins 8 caractères`;
     isError = true;
     //Match Validation
   } else if (attributes.includes("data-mustmatch")) {
@@ -169,6 +226,9 @@ function validateField(field) {
       errorField.textContent = `Les mots de passes ne correspondent pas`;
       isError = true;
     }
+  } else if (field.type === "email" && !emailRegex.test(field.value)) {
+    errorField.textContent = "Mauvais format d'email";
+    isError = true;
   }
 
   parent.classList.toggle("error", isError);
@@ -293,7 +353,8 @@ async function searchGames() {
     $("#query-empty").hidden = games.length > 0;
     $("#games-list").replaceChildren(...games.map(gameCard));
   } catch (error) {
-    showFormError(dialog, error);
+    // showFormError(dialog, error);
+    toast(error, true);
   }
 }
 

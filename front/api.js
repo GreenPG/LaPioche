@@ -1,5 +1,4 @@
 import { API_URL } from "./config.js";
-import { getJWT, logout } from "./app.js";
 
 // Client de l'API La Pioche : une fonction par route.
 // Une route ajoutée côté Vapor s'ajoute dans l'objet `api`, en bas du fichier.
@@ -90,6 +89,26 @@ export function translateError(status, reason) {
     return "Le serveur a rencontré une erreur. Réessayez dans un instant.";
   }
   return statusMessages[status] ?? "Une erreur est survenue. Réessayez.";
+}
+
+export function setJWT(jwtValue, expires) {
+  document.cookie = `jwt=${jwtValue};${expires};path=/`;
+}
+
+export function getJWT() {
+  let token = "";
+  const cookies = document.cookie.split("; ");
+  cookies.forEach((cookie) => {
+    let splittedCookie = cookie.split("=");
+    if (splittedCookie[0] === "jwt") {
+      token = splittedCookie[1];
+    }
+  });
+  return token;
+}
+
+export function deleteJWT() {
+  document.cookie = `jwt=${getJWT()};expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
 }
 
 async function request(method, path, body) {

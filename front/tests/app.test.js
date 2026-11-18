@@ -64,6 +64,8 @@ const sevenWondersLoan = {
   dueAt: new Date().setDate(new Date().getDate() - 1),
 };
 
+const user = { id: 1, email: "camille@example.com" };
+
 const cardOf = (app, title) =>
   app
     .$$("#games-list .card")
@@ -73,6 +75,7 @@ const cardOf = (app, title) =>
 
 test("games list shows one card per game with its availability", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan, dixit],
     "GET /loans/overdue": [],
   });
@@ -87,6 +90,7 @@ test("games list shows one card per game with its availability", async () => {
 
 test("only an available game offers Borrow", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan, dixit],
     "GET /loans/overdue": [],
   });
@@ -106,7 +110,11 @@ test("only an available game offers Borrow", async () => {
 });
 
 test("with no game, a message invites to add one", async () => {
-  const app = await mountApp({ "GET /games": [], "GET /loans/overdue": [] });
+  const app = await mountApp({
+    "GET /auth/me": user,
+    "GET /games": [],
+    "GET /loans/overdue": [],
+  });
   await waitFor(() => !app.$("#games-empty").hidden);
   assertIncludes(app.$("#games-empty").textContent, "ne contient aucun jeu");
   assertIncludes(app.$("#games-empty").textContent, "Ajouter un jeu");
@@ -114,6 +122,7 @@ test("with no game, a message invites to add one", async () => {
 
 test("adding a game posts the form then reloads the list", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan],
     "GET /loans/overdue": [],
     "POST /games": [201, { ...catan, id: "g3", title: "Dixit" }],
@@ -144,6 +153,7 @@ test("adding a game posts the form then reloads the list", async () => {
 
 test("a validation error is shown in French and the dialog stays open", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [],
     "GET /loans/overdue": [],
     "POST /games": [
@@ -171,6 +181,7 @@ test("a validation error is shown in French and the dialog stays open", async ()
 test("deleting a game", async () => {
   let games = [catan];
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": () => games,
     "GET /loans/overdue": [],
     "DELETE /games/g1": () => {
@@ -206,6 +217,7 @@ test("deleting a game", async () => {
 test("deleting game with loans explains that it cannot be deleted", async () => {
   let games = [catan];
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": () => games,
     "GET /loans/overdue": [],
     "GET /members": [camille],
@@ -253,6 +265,7 @@ test("deleting game with loans explains that it cannot be deleted", async () => 
 
 test("search game shows one card per game with its availability", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan, dixit],
     "GET /loans/overdue": [],
     "GET /games?q=cat&players=3&maxDuration=80": [catan],
@@ -279,6 +292,7 @@ test("search game shows one card per game with its availability", async () => {
 
 test("search game shows empty result", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan, dixit],
     "GET /loans/overdue": [],
     "GET /games?q=unknown&players=30&maxDuration=10": [],
@@ -305,6 +319,7 @@ test("search game shows empty result", async () => {
 
 test("search available games shows one card per game with its availability", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan, dixit],
     "GET /loans/overdue": [],
     "GET /games?available=true": [catan],
@@ -328,6 +343,7 @@ test("search available games shows one card per game with its availability", asy
 
 test("search games with full filters shows one card per game with its availability", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan, dixit, sevenWonders],
     "GET /loans/overdue": [],
     "GET /games?maxDuration=80&available=true": [catan],
@@ -354,6 +370,7 @@ test("search games with full filters shows one card per game with its availabili
 
 test("borrowing a game sends the game and the chosen member", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan],
     "GET /loans/overdue": [],
     "GET /members": [camille],
@@ -391,6 +408,7 @@ test("borrowing a game sends the game and the chosen member", async () => {
 
 test("borrowing without any member explains that one must be added first", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [catan],
     "GET /loans/overdue": [],
     "GET /members": [],
@@ -409,6 +427,7 @@ test("borrowing without any member explains that one must be added first", async
 
 test("return a game return the updated loan", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [dixit],
     "GET /loans/overdue": [],
     "GET /members": [camille],
@@ -432,6 +451,7 @@ test("return a game return the updated loan", async () => {
 
 test("return a game already returned display error message", async () => {
   const app = await mountApp({
+    "GET /auth/me": user,
     "GET /games": [dixit],
     "GET /loans/overdue": [],
     "GET /members": [camille],
@@ -459,6 +479,7 @@ test("return a game already returned display error message", async () => {
 test("overdue loans tab list the overdue loans", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /loans/overdue": [sevenWondersLoan],
       "GET /games/g3": sevenWonders,
       "GET /members/m1": camille,
@@ -476,6 +497,7 @@ test("overdue loans tab list the overdue loans", async () => {
 test("with no overdue loans, display an info message", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /loans/overdue": [],
     },
     { hash: "#overdue-loans" },
@@ -491,7 +513,11 @@ test("with no overdue loans, display an info message", async () => {
 
 test("members tab lists the members", async () => {
   const app = await mountApp(
-    { "GET /members": [camille], "GET /loans/overdue": [] },
+    {
+      "GET /auth/me": user,
+      "GET /members": [camille],
+      "GET /loans/overdue": [],
+    },
     { hash: "#members" },
   );
   await waitFor(() => app.$$("#members-list .row").length === 1);
@@ -504,7 +530,11 @@ test("members tab lists the members", async () => {
 
 test("with no member, a message invites to add one", async () => {
   const app = await mountApp(
-    { "GET /members": [], "GET /loans/overdue": [] },
+    {
+      "GET /auth/me": user,
+      "GET /members": [],
+      "GET /loans/overdue": [],
+    },
     { hash: "#members" },
   );
   await waitFor(() => !app.$("#members-empty").hidden);
@@ -517,6 +547,7 @@ test("with no member, a message invites to add one", async () => {
 test("adding a member posts the form", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /members": [],
       "GET /loans/overdue": [],
       "POST /members": [201, camille],
@@ -545,6 +576,7 @@ test("adding a member posts the form", async () => {
 test("an email already in use is shown in French", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /members": [],
       "GET /loans/overdue": [],
       "POST /members": [
@@ -570,6 +602,7 @@ test("an email already in use is shown in French", async () => {
 test("modify a member", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /members": [camille],
       "GET /loans/overdue": [],
       "PUT /members/m1": [
@@ -608,6 +641,7 @@ test("modify a member", async () => {
 test("update a member and an email already in use is shown in French", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /members": [camille],
       "GET /loans/overdue": [],
       "PUT /members/m1": [
@@ -637,6 +671,7 @@ test("update a member and an email already in use is shown in French", async () 
 test("list member loans with all status", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /members": [camille],
       "GET /loans/overdue": [],
       "GET /members/m1/loans": [catanLoan, dixitLoan, sevenWondersLoan],
@@ -673,7 +708,6 @@ test("list member loans with all status", async () => {
     () => app.$("#member-loans-dialog").open,
     "la boîte de liste d'emprunts",
   );
-  // await waitFor(() => app.$("#member-loans-list").length === 3);
   assertEqual(
     app.$("#member-loans-list").children[0].children[0].children[0].textContent,
     "Catan",
@@ -709,6 +743,7 @@ test("list member loans with all status", async () => {
 test("with no loans, display an info message", async () => {
   const app = await mountApp(
     {
+      "GET /auth/me": user,
       "GET /members": [camille],
       "GET /loans/overdue": [],
       "GET /members/m1/loans": [],
