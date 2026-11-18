@@ -8,7 +8,7 @@ func configure(_ app: Application) async throws {
     let cors = CORSMiddleware(configuration: .init(
         allowedOrigin: .all,
         allowedMethods: [.GET, .POST, .PUT, .DELETE, .OPTIONS],
-        allowedHeaders: [.accept, .contentType, .origin]
+        allowedHeaders: [.accept, .contentType, .origin, .authorization]
     ))
     // CORS must wrap the error middleware so that error responses carry its headers too.
     app.middleware = .init()
