@@ -63,3 +63,41 @@ func insertLoan(
     return loan
 }
 
+func registerUser(
+    _ app: Application,
+    email: String = "camille@example.com",
+    password: String = "password"
+) async throws -> AuthDTO {
+    var user: AuthDTO?
+    try await app.test(
+        .POST,
+        "auth/register",
+        beforeRequest:  { req in
+            try req.content.encode(
+                RegisterDTO(email: email, password: password)
+            )
+        },
+        afterResponse: { res async throws in
+            user = try res.content.decode(AuthDTO.self)
+        })
+    return try XCTUnwrap(user)
+}
+
+func registerUserWithExpiredToken(
+    _ app: Application,
+    email: String = "camille@example.com",
+    password: String = "password"
+) async throws -> AuthDTO {
+    let user = User(email: email, password: password)
+    try await user.save(on: app.db)
+    var payload = UserPayload(id: user.id!)
+    payload.expiration = Date().addingTimeInterval(-24 * 3600)
+    let signer = JWTSigner.hs256(key: Environment.get("JWT_KEY")!)
+    let jwt = try signer.sign(payload)
+
+    return AuthDTO(
+            token: jwt,
+            expiresAt: payload.expiration,
+            user: user.toDTO()
+        )
+}
