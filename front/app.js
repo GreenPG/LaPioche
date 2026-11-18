@@ -73,7 +73,7 @@ function bindSubmit(dialog, form, handler) {
 
 // --- Onglets ---------------------------------------------------------------
 
-const tabs = ["games", "members", "overdue-loans"];
+const tabs = ["games", "members", "overdue-loans", "login", "register"];
 
 function currentTab() {
   const name = location.hash.slice(1);
@@ -81,10 +81,22 @@ function currentTab() {
 }
 
 async function refresh() {
-  const tab = currentTab();
+  let tab;
+  if (isLoggedIn) {
+    tab = currentTab();
+    const overduedLoans = await api.listOverdueLoans();
+    $("#overdue-count").hidden = overduedLoans.length == 0;
+    if (overduedLoans.length > 0) {
+      $("#overdue-count").textContent = overduedLoans.length;
+    }
+  } else {
+    tab = location.hash.slice(1) === "login" ? "login" : "register";
+  }
   for (const name of tabs) {
     $(`#${name}`).hidden = name !== tab;
-    $(`[data-tab="${name}"]`).toggleAttribute("aria-current", name === tab);
+    if (isLoggedIn) {
+      $(`[data-tab="${name}"]`).toggleAttribute("aria-current", name === tab);
+    }
   }
   switch (tab) {
     case "games":
@@ -97,15 +109,71 @@ async function refresh() {
       await run(loadOverdueLoans);
       break;
   }
-  const overduedLoans = await api.listOverdueLoans();
-  $("#overdue-count").hidden = overduedLoans.length == 0;
-  if (overduedLoans.length > 0) {
-    $("#overdue-count").textContent = overduedLoans.length;
-  }
-  // await run(tab === "games" ? loadGames : loadMembers);
 }
 
 window.addEventListener("hashchange", refresh);
+
+// --- Authentification ------------------------------------------------------
+
+var isLoggedIn = false;
+const loginForm = $("#login-form");
+const registerForm = $("#register-form");
+
+var accountEmail = null;
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!validateForm($("#loginForm"))) {
+    return;
+  }
+  // let authDTO = await api.login({
+  //   email: loginForm.email.value,
+  //   password: loginForm.email.password,
+  // });
+  //
+  // document.cookie = `jwttoken=${token}`;
+  // emailAccount = authDTO.user.email;
+  // window.location.hash = "#games";
+});
+
+function validateForm(form) {
+  let isValid = true;
+  form.querySelectorAll("input").forEach((input) => {
+    if (!valdateField(input)) {
+      isValid = false;
+    }
+  });
+  return isValid;
+}
+
+function validateField(field) {
+  let attributes = field.getAttributeNames();
+  let parent = field.parentNode;
+  let errorField = parent.querySelector(".formError");
+
+  let isError = false;
+
+  if (attributes.includes("required") && field.value === "") {
+    errorField.textContent = `Le champ ${field.dataset.errorfieldname} est requis`;
+    isError = true;
+  } else if (
+    attributes.includes("minlength") &&
+    field.value.length < field.getAttribute("minlength")
+  ) {
+    errorField.textContent = `Le ${field.getAttribute("minlength")} doit faire au moins 8 caractères`;
+    isError = true;
+    //Match Validation
+  } else if (attributes.includes("data-mustmatch")) {
+    let elementToMatch = document.getElementById(field.dataset.mustmatch);
+    if (elementToMatch.value !== field.value) {
+      errorField.textContent = `Les mots de passes ne correspondent pas`;
+      isError = true;
+    }
+  }
+
+  parent.classList.toggle("error", isError);
+  return isError;
+}
 
 // --- Jeux ------------------------------------------------------------------
 

@@ -28,6 +28,31 @@
     </header>
 
     <main>
+
+        <section id="login" class="tab" hidden>
+            <form id="login-form" novalidate data-customvalidate>
+                <h2>Connexion</h2>
+                <label>Email<input type="text" name="email" value="" required data-errorfieldname><span
+                        class="formError"></span></label>
+                <label>Mot de passe<input type="password" name="password" value="" required minlength=8
+                        data-errorfieldname><span class="formError"></span></label>
+                <button id="login" type="submit" class="primary">Connectez-vous</button>
+                <p>Pas encore de compte ? <a href="#register">Inscrivez-vous ici<a /></p>
+            </form>
+        </section>
+        <section id="register" class="tab" hidden>
+            <form id="register-form">
+                <h2>Inscription</h2>
+                <label>Email<input type="email" name="email" placeholder="Email" value="" required></label>
+                <label>Mot de passe<input type="password" name="password" value="" required minlength=8></label>
+                <label>Confirmer votre mot de passe<input type="password" name="password-confirmation" value="" required
+                        minlength=8></label>
+                <button id="register" type="submit" class="primary">Inscrivez-vous</button>
+                <p>Vous avez déjà un compte ? <a href="#login">Cliquez ici</a></p>
+            </form>
+        </section>
+
+
         <section id="games" class="tab" hidden>
             <div class="section-head">
                 <h2>Jeux</h2>
@@ -39,11 +64,9 @@
                 <label>Titre<input type="text" name="gameTitle" value=""></label>
                 <label>Nombre de joueurs<input type="number" name="players" value=""></label>
                 <label>Durée maximum<input type="number" name="maxDuration" value=""></label>
-                <!-- <label>Disponible<input type="number" name="maxDuration" value=""></label> -->
                 <button id="search-games" type="submit" class="primary">Rechercher</button>
                 <button id="reset-filter" type="reset">Réinitialiser</button>
                 <label for="game-available">Disponible uniquement
-                    <!-- <button id="game-available" role="switch"></button> -->
                     <input id="game-available" type="checkbox" name="gameAvailable" value="" switch>
                 </label>
             </form>

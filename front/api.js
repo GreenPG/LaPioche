@@ -134,4 +134,7 @@ export const api = {
   borrow: (gameID, memberID) => request("POST", "/loans", { gameID, memberID }),
   returnLoan: (loanID) => request("POST", `/loans/${loanID}/return`),
   listOverdueLoans: () => request("GET", "/loans/overdue"),
+
+  login: (loginDTO) => request("POST", "/auth/login", loginDTO),
+  register: (registerDTO) => request("POST", "/auth/register", registerDTO),
 };
